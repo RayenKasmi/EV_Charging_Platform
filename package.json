@@ -1,0 +1,31 @@
+{
+  "name": "ev_charging_platform",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/RayenKasmi/EV_Charging_Platform.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/RayenKasmi/EV_Charging_Platform/issues"
+  },
+  "homepage": "https://github.com/RayenKasmi/EV_Charging_Platform#readme",
+  "devDependencies": {
+    "@nx/workspace": "^22.3.3",
+    "husky": "^9.1.7",
+    "lint-staged": "^16.2.7",
+    "nx": "^22.3.3"
+  },
+  "lint-staged": {
+    "frontend/**/*.ts": ["eslint --fix", "prettier --write"],
+    "*.html": ["prettier --write"],
+    "*.scss": ["prettier --write"]
+  }
+}
