@@ -6,7 +6,7 @@
 
 generator client {
   provider = "prisma-client-js"
-  output   = "../dist/generated/prisma"
+  output   = "../generated/prisma"
 }
 
 datasource db {
@@ -62,6 +62,7 @@ model User {
   passwordHash String
   fullName     String
   role         UserRole @default(CUSTOMER)
+  refreshToken String?  @db.Text
 
   reservations     Reservation[]
   chargingSessions ChargingSession[]
