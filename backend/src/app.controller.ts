@@ -1,5 +1,10 @@
-import { Controller, Get } from '@nestjs/common';
+import { Controller, Get, UseGuards } from '@nestjs/common';
 import { AppService } from './app.service';
+import { Roles } from './auth/decorators/roles.decorator';
+import { ApiBearerAuth } from '@nestjs/swagger';
+import { JwtAuthGuard } from './auth/guards/jwt-auth.guard';
+import { RolesGuard } from './auth/guards/roles.guard';
+import { UserRole } from 'generated/prisma';
 
 @Controller()
 export class AppController {
