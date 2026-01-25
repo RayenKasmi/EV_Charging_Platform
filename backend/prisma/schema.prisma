@@ -12,3 +12,199 @@ generator client {
 datasource db {
   provider = "postgresql"
 }
+
+enum UserRole {
+  ADMIN
+  OPERATOR
+  CUSTOMER
+}
+
+enum ChargerStatus {
+  AVAILABLE
+  OCCUPIED
+  OUT_OF_SERVICE
+}
+
+enum SessionStatus {
+  PENDING
+  ACTIVE
+  COMPLETED
+  CANCELLED
+}
+
+enum ReservationStatus {
+  PENDING
+  CONFIRMED
+  CANCELLED
+  EXPIRED
+}
+
+enum PaymentStatus {
+  PENDING
+  PAID
+  FAILED
+  REFUNDED
+}
+
+enum PricingType {
+  FIXED
+  TIME_BASED
+  DEMAND_BASED
+}
+
+/* =======================
+   User
+======================= */
+
+model User {
+  id           String   @id @default(uuid())
+  email        String   @unique
+  passwordHash String
+  fullName     String
+  role         UserRole @default(CUSTOMER)
+
+  reservations     Reservation[]
+  chargingSessions ChargingSession[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([email])
+}
+
+/* =======================
+   Station
+======================= */
+
+model Station {
+  id          String  @id @default(uuid())
+  name        String
+  address     String
+  city        String
+  latitude    Float
+  longitude   Float
+  isActive    Boolean @default(true)
+
+  chargers     Charger[]
+  pricingRules PricingRule[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([city])
+}
+
+/* =======================
+   Charger
+======================= */
+
+model Charger {
+  id         String        @id @default(uuid())
+  stationId String
+  status    ChargerStatus @default(AVAILABLE)
+  powerKW   Float
+
+  station           Station          @relation(fields: [stationId], references: [id])
+  chargingSessions  ChargingSession[]
+  reservations      Reservation[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([stationId])
+  @@index([status])
+}
+
+/* =======================
+   Charging Session
+======================= */
+
+model ChargingSession {
+  id          String        @id @default(uuid())
+  userId      String
+  chargerId   String
+  status      SessionStatus @default(PENDING)
+
+  startedAt   DateTime?
+  endedAt     DateTime?
+  energyKWh   Float?   // total energy delivered
+  totalCost   Float?
+
+  user     User     @relation(fields: [userId], references: [id])
+  charger  Charger  @relation(fields: [chargerId], references: [id])
+  payment  Payment?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([userId])
+  @@index([startedAt])
+}
+
+/* =======================
+   Reservation
+======================= */
+
+model Reservation {
+  id          String             @id @default(uuid())
+  userId      String
+  chargerId   String
+  status      ReservationStatus  @default(PENDING)
+
+  reservedFrom DateTime
+  reservedTo   DateTime
+
+  user     User     @relation(fields: [userId], references: [id])
+  charger  Charger  @relation(fields: [chargerId], references: [id])
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([userId])
+  @@index([reservedFrom, reservedTo])
+}
+
+/* =======================
+   Payment
+======================= */
+
+model Payment {
+  id               String        @id @default(uuid())
+  chargingSessionId String? @unique
+
+  amount     Float
+  currency   String  @default("USD")
+  status     PaymentStatus @default(PENDING)
+  provider   String  // Stripe, PayPal, etc.
+  providerRef String?
+
+  chargingSession ChargingSession? @relation(fields: [chargingSessionId], references: [id])
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([chargingSessionId])
+}
+
+/* =======================
+   Pricing Rule
+======================= */
+
+//could add rule priority here
+model PricingRule {
+  id        String      @id @default(uuid())
+  stationId String
+  type      PricingType @default(FIXED)
+
+  basePricePerKWh Float
+  startTime       DateTime?
+  endTime         DateTime?
+  demandMultiplier Float?
+
+  station Station @relation(fields: [stationId], references: [id])
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([stationId])
+}
