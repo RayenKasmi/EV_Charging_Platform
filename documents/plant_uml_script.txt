@@ -1,0 +1,153 @@
+@startuml
+
+' ======================
+' Enums
+' ======================
+
+enum UserRole {
+  ADMIN
+  OPERATOR
+  CUSTOMER
+}
+
+enum ChargerStatus {
+  AVAILABLE
+  OCCUPIED
+  OUT_OF_SERVICE
+}
+
+enum SessionStatus {
+  PENDING
+  ACTIVE
+  COMPLETED
+  CANCELLED
+}
+
+enum ReservationStatus {
+  PENDING
+  CONFIRMED
+  CANCELLED
+  EXPIRED
+}
+
+enum PaymentStatus {
+  PENDING
+  PAID
+  FAILED
+  REFUNDED
+}
+
+enum PricingType {
+  FIXED
+  TIME_BASED
+  DEMAND_BASED
+}
+
+' ======================
+' Classes
+' ======================
+
+class User {
+  id : UUID
+  email : String
+  passwordHash : String
+  fullName : String
+  role : UserRole
+  createdAt : DateTime
+  updatedAt : DateTime
+}
+
+class Station {
+  id : UUID
+  name : String
+  address : String
+  city : String
+  latitude : Float
+  longitude : Float
+  isActive : Boolean
+  createdAt : DateTime
+  updatedAt : DateTime
+}
+
+class Charger {
+  id : UUID
+  stationId : UUID
+  status : ChargerStatus
+  powerKW : Float
+  createdAt : DateTime
+  updatedAt : DateTime
+}
+
+class ChargingSession {
+  id : UUID
+  userId : UUID
+  chargerId : UUID
+  status : SessionStatus
+  startedAt : DateTime
+  endedAt : DateTime
+  energyKWh : Float
+  totalCost : Float
+  createdAt : DateTime
+  updatedAt : DateTime
+}
+
+class Reservation {
+  id : UUID
+  userId : UUID
+  chargerId : UUID
+  status : ReservationStatus
+  reservedFrom : DateTime
+  reservedTo : DateTime
+  createdAt : DateTime
+  updatedAt : DateTime
+}
+
+class Payment {
+  id : UUID
+  chargingSessionId : UUID
+  amount : Float
+  currency : String
+  status : PaymentStatus
+  provider : String
+  providerRef : String
+  createdAt : DateTime
+  updatedAt : DateTime
+}
+
+class PricingRule {
+  id : UUID
+  stationId : UUID
+  type : PricingType
+  basePricePerKWh : Float
+  startTime : DateTime
+  endTime : DateTime
+  demandMultiplier : Float
+  createdAt : DateTime
+  updatedAt : DateTime
+}
+
+' ======================
+' Relationships
+' ======================
+
+User "1" -- "0..*" ChargingSession : has
+User "1" -- "0..*" Reservation : makes
+
+Station "1" -- "0..*" Charger : contains
+Station "1" -- "0..*" PricingRule : defines
+
+Charger "1" -- "0..*" ChargingSession : used in
+Charger "1" -- "0..*" Reservation : reserved for
+
+ChargingSession "1" -- "0..1" Payment : billed by
+
+ChargingSession "*" -- "1" User
+ChargingSession "*" -- "1" Charger
+
+Reservation "*" -- "1" User
+Reservation "*" -- "1" Charger
+
+PricingRule "*" -- "1" Station
+Charger "*" -- "1" Station
+
+@enduml
