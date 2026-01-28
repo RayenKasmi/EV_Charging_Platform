@@ -1,20 +1,14 @@
 import { ApplicationConfig, provideBrowserGlobalErrorListeners, provideZoneChangeDetection } from '@angular/core';
-import { provideRouter } from '@angular/router';
-
+import { provideRouter, withPreloading, PreloadAllModules } from '@angular/router';
 import { routes } from './app.routes';
 import { provideHttpClient, withInterceptors } from '@angular/common/http';
-//import { authInterceptor } from '@core/interceptors/auth.interceptor';
+import { authInterceptor } from './core/interceptors/auth.interceptor';
 
 export const appConfig: ApplicationConfig = {
   providers: [
     provideBrowserGlobalErrorListeners(),
     provideZoneChangeDetection({ eventCoalescing: true }),
-    provideRouter(routes),
-    //provideHttpClient(withInterceptors([authInterceptor]))
-  ]
+    provideRouter(routes, withPreloading(PreloadAllModules)),
+    provideHttpClient(withInterceptors([authInterceptor])),
+  ],
 };
-
-/*
-TODO:
-The person tasked with configuring auth has to create the authservice in order for the interceptor to work
-*/
