@@ -102,3 +102,6 @@ mobile/app.*.map.json
 mobile/android/app/debug
 mobile/android/app/profile
 mobile/android/app/release
+
+# docker related
+.env.docker
