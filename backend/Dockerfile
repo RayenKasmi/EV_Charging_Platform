@@ -34,13 +34,18 @@ RUN addgroup -g 1001 -S nodejs && \
 # Copy package files and prisma
 COPY package*.json ./
 COPY prisma ./prisma
+COPY prisma.config.ts ./
 
 # Install production dependencies only
 RUN npm ci --omit=dev && npm cache clean --force
 
-# Copy built application from builder - copy both dist directories
+# Copy built application from builder
 COPY --from=builder /app/dist/src ./dist/
-COPY --from=builder /app/node_modules/.prisma ./node_modules/.prisma
+COPY --from=builder /app/generated ./generated
+
+# Copy the startup script
+COPY docker-entrypoint.sh /app/
+RUN chmod +x /app/docker-entrypoint.sh
 
 # Change ownership to nodejs user
 RUN chown -R nodejs:nodejs /app
@@ -49,4 +54,4 @@ USER nodejs
 
 EXPOSE 3000
 
-CMD ["node", "dist/main.js"]
+ENTRYPOINT ["/app/docker-entrypoint.sh"]
