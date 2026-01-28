@@ -16,44 +16,53 @@ interface NavItem {
   standalone: true,
   imports: [CommonModule, RouterLink, RouterLinkActive, RouterOutlet, ButtonComponent],
   template: `
-    <div class="flex h-screen bg-gray-100">
+    <div class="flex h-screen bg-slate-100">
       <!-- Sidebar -->
-      <div class="w-64 bg-gray-900 text-white flex flex-col shadow-lg">
+      <div class="w-64 bg-gradient-to-b from-slate-900 to-slate-800 text-white flex flex-col shadow-2xl border-r border-slate-700">
         <!-- Logo -->
-        <div class="px-6 py-6 border-b border-gray-800">
-          <h2 class="text-2xl font-bold">⚡ EV Charging</h2>
-          <p class="text-gray-400 text-sm mt-1">Platform</p>
+        <div class="px-6 py-8 border-b border-slate-700">
+          <div class="flex items-center gap-3 mb-2">
+            <div class="w-10 h-10 bg-gradient-to-br from-primary-400 to-accent-500 rounded-lg flex items-center justify-center">
+              <span class="text-xl">⚡</span>
+            </div>
+            <div>
+              <h2 class="text-xl font-bold">EV Charge</h2>
+              <p class="text-xs text-slate-400">Platform</p>
+            </div>
+          </div>
         </div>
 
-        <!-- User Info -->
-        <div class="px-6 py-4 border-b border-gray-800 bg-gray-800">
-          <p class="text-sm text-gray-400">Logged in as</p>
-          <p class="font-semibold">{{ currentUser()?.firstName }} {{ currentUser()?.lastName }}</p>
-          <span class="text-xs bg-blue-600 text-white px-2 py-1 rounded mt-2 inline-block">
-            {{ currentUser()?.role }}
-          </span>
+        <!-- User Info Card -->
+        <div class="mx-4 mt-6 mb-6 p-4 bg-gradient-to-br from-primary-900 to-primary-800 rounded-xl border border-primary-700">
+          <p class="text-xs text-primary-300 uppercase tracking-wide mb-2">User Profile</p>
+          <p class="font-semibold text-white">{{ currentUser()?.firstName }} {{ currentUser()?.lastName }}</p>
+          <div class="flex items-center gap-2 mt-3">
+            <span class="w-2 h-2 bg-secondary-400 rounded-full"></span>
+            <span class="text-xs font-medium text-primary-100">{{ currentUser()?.role }}</span>
+          </div>
         </div>
 
         <!-- Navigation -->
-        <nav class="flex-1 px-4 py-6 space-y-2 overflow-y-auto">
+        <nav class="flex-1 px-3 space-y-1 overflow-y-auto">
           <a
             *ngFor="let item of getVisibleNavItems()"
             [routerLink]="item.route"
-            routerLinkActive="bg-gray-700"
+            routerLinkActive="bg-primary-600 text-white shadow-lg"
             [routerLinkActiveOptions]="{ exact: false }"
-            class="flex items-center gap-3 px-4 py-3 rounded-lg transition-colors hover:bg-gray-800 text-gray-300"
+            class="flex items-center gap-3 px-4 py-3 rounded-lg transition-all duration-200 hover:bg-slate-700 text-slate-300 group"
           >
-            <span class="text-xl">{{ item.icon }}</span>
-            <span>{{ item.label }}</span>
+            <span class="text-lg group-hover:scale-110 transition-transform">{{ item.icon }}</span>
+            <span class="font-medium">{{ item.label }}</span>
           </a>
         </nav>
 
-        <!-- Logout -->
-        <div class="px-4 py-4 border-t border-gray-800">
+        <!-- Logout Button -->
+        <div class="px-3 py-6 border-t border-slate-700">
           <button
             (click)="onLogout()"
-            class="w-full px-4 py-2 bg-red-600 hover:bg-red-700 rounded-lg font-medium transition-colors"
+            class="w-full px-4 py-3 bg-gradient-to-r from-red-500 to-red-600 hover:from-red-600 hover:to-red-700 text-white rounded-lg font-medium transition-all duration-200 shadow-md hover:shadow-lg flex items-center justify-center gap-2"
           >
+            <span>🚪</span>
             Logout
           </button>
         </div>
@@ -62,13 +71,19 @@ interface NavItem {
       <!-- Main Content -->
       <div class="flex-1 flex flex-col overflow-hidden">
         <!-- Top Navbar -->
-        <div class="bg-white shadow px-6 py-4 flex justify-between items-center">
-          <h1 class="text-2xl font-bold text-gray-900">Dashboard</h1>
-          <div class="flex items-center gap-4">
-            <span class="text-gray-600">Welcome back!</span>
+        <div class="bg-white border-b border-slate-200 shadow-sm px-8 py-5 flex justify-between items-center">
+          <div>
+            <h1 class="text-3xl font-bold bg-gradient-to-r from-primary-600 to-accent-600 bg-clip-text text-transparent">Dashboard</h1>
+            <p class="text-sm text-slate-500 mt-1">Welcome back to your charging platform</p>
+          </div>
+          <div class="flex items-center gap-6">
+            <div class="hidden md:block text-right">
+              <p class="text-sm font-medium text-slate-900">{{ currentUser()?.firstName }}</p>
+              <p class="text-xs text-slate-500">{{ currentUser()?.email }}</p>
+            </div>
             <a
               routerLink="/dashboard/profile"
-              class="w-10 h-10 bg-gradient-to-br from-blue-500 to-blue-600 rounded-full flex items-center justify-center text-white font-bold text-lg hover:shadow-lg transition-shadow"
+              class="w-12 h-12 bg-gradient-to-br from-primary-500 to-accent-500 rounded-full flex items-center justify-center text-white font-bold text-lg hover:shadow-lg hover:scale-105 transition-all duration-200 cursor-pointer"
             >
               {{ getUserInitials() }}
             </a>
@@ -76,7 +91,7 @@ interface NavItem {
         </div>
 
         <!-- Page Content -->
-        <div class="flex-1 overflow-auto p-6">
+        <div class="flex-1 overflow-auto p-8">
           <router-outlet></router-outlet>
         </div>
       </div>
