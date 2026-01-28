@@ -1,6 +1,5 @@
-import { Injectable } from '@angular/core';
-import { CanActivateFn, Router } from '@angular/router';
 import { inject } from '@angular/core';
+import { Router, CanActivateFn } from '@angular/router';
 import { AuthService } from '../services/auth.service';
 
 export const authGuard: CanActivateFn = (route, state) => {
@@ -11,8 +10,6 @@ export const authGuard: CanActivateFn = (route, state) => {
     return true;
   }
 
-  // Store the requested URL for redirecting after login
-  localStorage.setItem('redirect_url', state.url);
   router.navigate(['/auth/login']);
   return false;
 };

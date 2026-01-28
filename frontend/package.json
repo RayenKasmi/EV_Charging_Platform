@@ -1,62 +1,31 @@
 {
-  "name": "frontend",
-  "version": "0.0.0",
+  "name": "angular-starter",
+  "private": true,
   "scripts": {
     "ng": "ng",
     "start": "ng serve",
-    "build": "ng build",
-    "watch": "ng build --watch --configuration development",
-    "test": "ng test",
-    "lint": "ng lint"
+    "build": "ng build"
   },
-  "prettier": {
-    "printWidth": 100,
-    "singleQuote": true,
-    "overrides": [
-      {
-        "files": "*.html",
-        "options": {
-          "parser": "angular"
-        }
-      }
-    ]
-  },
-  "private": true,
   "dependencies": {
-    "@angular/common": "^20.3.0",
-    "@angular/compiler": "^20.3.0",
-    "@angular/core": "^20.3.0",
-    "@angular/forms": "^20.3.0",
-    "@angular/platform-browser": "^20.3.0",
-    "@angular/router": "^20.3.0",
-    "autoprefixer": "^10.4.23",
-    "chart.js": "^4.5.1",
-    "leaflet": "^1.9.4",
+    "@angular/animations": "^21.0.3",
+    "@angular/common": "^21.0.3",
+    "@angular/compiler": "^21.0.3",
+    "@angular/core": "^21.0.3",
+    "@angular/forms": "^21.0.3",
+    "@angular/platform-browser": "^21.0.3",
+    "@angular/router": "^21.0.3",
     "lucide-angular": "^0.563.0",
-    "postcss": "^8.5.6",
-    "recharts": "^3.7.0",
-    "rxjs": "~7.8.0",
-    "tailwindcss": "^3.4.19",
-    "tslib": "^2.3.0",
-    "zone.js": "~0.15.0"
+    "rxjs": "^7.8.1",
+    "tslib": "^2.5.0",
+    "zone.js": "^0.16.0"
   },
   "devDependencies": {
-    "@angular/build": "^20.3.7",
-    "@angular/cli": "^20.3.7",
-    "@angular/compiler-cli": "^20.3.0",
-    "@types/jasmine": "~5.1.0",
-    "angular-eslint": "21.0.1",
-    "eslint": "^9.39.1",
-    "eslint-config-prettier": "^10.1.8",
-    "eslint-plugin-prettier": "^5.5.4",
-    "jasmine-core": "~5.9.0",
-    "karma": "~6.4.0",
-    "karma-chrome-launcher": "~3.2.0",
-    "karma-coverage": "~2.2.0",
-    "karma-jasmine": "~5.1.0",
-    "karma-jasmine-html-reporter": "~2.1.0",
-    "prettier": "^3.7.4",
-    "typescript": "~5.9.2",
-    "typescript-eslint": "8.46.4"
+    "@angular/build": "^21.0.2",
+    "@angular/cli": "^21.0.2",
+    "@angular/compiler-cli": "^21.0.3",
+    "autoprefixer": "^10.4.23",
+    "postcss": "^8.5.6",
+    "tailwindcss": "^3.4.19",
+    "typescript": "^5.9.3"
   }
 }
