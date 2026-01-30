@@ -1,0 +1,6 @@
+export enum StationStatus {
+  ACTIVE = 'ACTIVE',
+  INACTIVE = 'INACTIVE',
+  MAINTENANCE = 'MAINTENANCE',
+  OFFLINE = 'OFFLINE',
+}
