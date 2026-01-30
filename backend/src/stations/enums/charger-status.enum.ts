@@ -1,0 +1,6 @@
+export enum ChargerStatus {
+  AVAILABLE = 'AVAILABLE',
+  OCCUPIED = 'OCCUPIED',
+  OFFLINE = 'OFFLINE',
+  MAINTENANCE = 'MAINTENANCE',
+}

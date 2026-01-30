@@ -3,7 +3,7 @@ import { ApiTags, ApiOperation, ApiBearerAuth, ApiResponse } from '@nestjs/swagg
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { RolesGuard } from '../auth/guards/roles.guard';
 import { Roles } from '../auth/decorators/roles.decorator';
-import { GetUser } from '../auth/decorators/get-user.decorator';
+import { GetUser } from '../common/decorators/get-user.decorator';
 import { UserRole } from '../auth/enums/user-role.enum';
 
 @ApiTags('Users')

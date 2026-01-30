@@ -22,7 +22,8 @@ enum UserRole {
 enum ChargerStatus {
   AVAILABLE
   OCCUPIED
-  OUT_OF_SERVICE
+  OFFLINE
+  MAINTENANCE
 }
 
 enum SessionStatus {
@@ -52,6 +53,25 @@ enum PricingType {
   DEMAND_BASED
 }
 
+enum StationStatus {
+  ACTIVE
+  INACTIVE
+  MAINTENANCE
+  OFFLINE
+}
+
+enum ChargerType {
+  LEVEL_2
+  DC_FAST
+}
+
+enum ConnectorType {
+  CCS
+  CHADEMO
+  TYPE_2
+  J1772
+}
+
 /* =======================
    User
 ======================= */
@@ -66,6 +86,7 @@ model User {
 
   reservations     Reservation[]
   chargingSessions ChargingSession[]
+  operatedStations Station[]              @relation("StationOperator")
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -84,15 +105,23 @@ model Station {
   city        String
   latitude    Float
   longitude   Float
+  location    Unsupported("geography(Point, 4326)")?
+  status      StationStatus @default(ACTIVE)
+  operatorId  String 
   isActive    Boolean @default(true)
 
+  operator     User         @relation("StationOperator", fields: [operatorId], references: [id])
   chargers     Charger[]
   pricingRules PricingRule[]
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
+  deletedAt DateTime? // soft delete
 
   @@index([city])
+  @@index([status])
+  @@index([operatorId])
+  @@index([location], type: Gist)
 }
 
 /* =======================
@@ -100,10 +129,15 @@ model Station {
 ======================= */
 
 model Charger {
-  id         String        @id @default(uuid())
-  stationId String
-  status    ChargerStatus @default(AVAILABLE)
-  powerKW   Float
+  id            String        @id @default(uuid())
+  chargerId     String         @unique  // Physical charger ID (vendor serial)
+  stationId     String
+  type          ChargerType
+  status        ChargerStatus @default(AVAILABLE)
+  connectorType ConnectorType
+  powerKW       Float
+  currentRate   Float?         // Price per kWh
+
 
   station           Station          @relation(fields: [stationId], references: [id])
   chargingSessions  ChargingSession[]
@@ -114,6 +148,7 @@ model Charger {
 
   @@index([stationId])
   @@index([status])
+  @@index([chargerId])
 }
 
 /* =======================
