@@ -3,9 +3,9 @@ import { PrismaService } from '../prisma/prisma.service';
 import { CreateStationDto } from './dtos/create-station.dto';
 import { StationQueryDto } from './dtos/station-query.dto';
 import { ChargerStatus } from './enums';
-import { Prisma } from 'generated/prisma';
 import { UpdateStationDto } from './dtos/update-station.dto';
 import { UserRole } from '../auth/enums/user-role.enum';
+import { Prisma } from '@prisma/client';
 @Injectable()
 export class StationsService {
   constructor(private readonly prisma: PrismaService) {}
