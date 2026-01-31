@@ -36,7 +36,7 @@ export class StationsController {
     return await this.stationService.findOne(id);
   }
 
-  @Get(':id/availibility')
+  @Get(':id/availability')
   @ApiOperation({ summary: 'Get station availibility by ID' })
   @ApiResponse({ status: 200, description: 'Return station availibility details' })
   @ApiResponse({ status: 404, description: 'Station not found' })
@@ -51,7 +51,7 @@ export class StationsController {
   @ApiOperation({ summary: 'Create new station.' })
   @ApiResponse({ status: 201, description: 'Station created successfully' })
   @ApiResponse({ status: 403, description: 'Forbidden: Admin or Operator access required' })
-  async createStation(@Body() createStationDto: CreateStationDto, @GetUser('userId') userId ) {
+  async createStation(@Body() createStationDto: CreateStationDto, @GetUser('id') userId ) {
     return await this.stationService.create(
       createStationDto,
       userId,
@@ -66,7 +66,7 @@ export class StationsController {
   @ApiResponse({ status: 200, description: 'Station updated successfully' })
   @ApiResponse({ status: 403, description: 'Forbidden: Admin or Operator access required' })
   @ApiResponse({ status: 404, description: 'Station not found' })
-  async updateStation(@Param('id') id: string, @Body() updateStationDto: UpdateStationDto, @GetUser('userId') userId, @GetUser('roles') roles) {
+  async updateStation(@Param('id') id: string, @Body() updateStationDto: UpdateStationDto, @GetUser('id') userId, @GetUser('role') roles) {
     return await this.stationService.update(
       id, 
       updateStationDto,
@@ -83,7 +83,7 @@ export class StationsController {
   @ApiResponse({ status: 200, description: 'Station deleted successfully' })
   @ApiResponse({ status: 403, description: 'Forbidden: Admin access required' })
   @ApiResponse({ status: 404, description: 'Station not found' })
-  async deleteStation(@Param('id') id: string, @GetUser('userId') userId, @GetUser('roles') roles) {
+  async deleteStation(@Param('id') id: string, @GetUser('id') userId, @GetUser('role') roles) {
     return await this.stationService.remove(id, userId, roles);
   }
 
@@ -96,13 +96,14 @@ export class StationsController {
   async addCharger(
     @Param('id') stationId: string,
     @Body() createChargerDto: CreateChargerDto,
-    @Request() req
+    @GetUser('id') userId,
+    @GetUser('role') roles,
   ) {
     return await this.chargerService.create(
       stationId,
       createChargerDto,
-      req.user.userId,
-      req.user.roles
+      userId,
+      roles
     );
   }
 
@@ -123,8 +124,8 @@ export class StationsController {
     @Param('id') stationId: string,
     @Param('chargerId') chargerId: string,
     @Body() updateChargerDto: UpdateChargerDto,
-    @GetUser('userId') userId, 
-    @GetUser('roles') roles
+    @GetUser('id') userId, 
+    @GetUser('role') roles
   ) {
     return await this.chargerService.update(
       stationId,
@@ -144,8 +145,8 @@ export class StationsController {
   async removeCharger(
     @Param('id') stationId: string,
     @Param('chargerId') chargerId: string,
-    @GetUser('userId') userId, 
-    @GetUser('roles') roles
+    @GetUser('id') userId, 
+    @GetUser('role') roles
   ) {
     await this.chargerService.remove(
       stationId,
