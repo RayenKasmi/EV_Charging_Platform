@@ -5,11 +5,6 @@ import { CommonModule } from '@angular/common';
   selector: 'app-station-detail',
   standalone: true,
   imports: [CommonModule],
-  template: `
-    <div class="p-6">
-      <h2 class="text-2xl font-bold mb-4">Station Details</h2>
-      <p>Station ID details will appear here.</p>
-    </div>
-  `
+  templateUrl: './station-detail.component.html'
 })
 export class StationDetailComponent {}

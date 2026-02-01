@@ -1,80 +1,14 @@
 import { Component, Input, Output, EventEmitter, signal, computed, effect, ChangeDetectionStrategy, OnInit, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { TimeSlot, TimeRange } from '../../core/models/reservation.model';
-import { ReservationService } from '../../core/services/reservation.service';
+import { TimeSlot, TimeRange } from '@core/models/reservation.model';
+import { ReservationService } from '@core/services/reservation.service';
 
 @Component({
   selector: 'app-reservation-calendar-view',
   standalone: true,
   imports: [CommonModule],
   changeDetection: ChangeDetectionStrategy.OnPush,
-  template: `
-    <div class="bg-white dark:bg-slate-800 rounded-lg shadow p-4">
-      <div class="mb-4 flex items-center justify-between">
-        <h3 class="text-lg font-semibold text-gray-900 dark:text-white">Select Time Slot</h3>
-        @if (selectedRange()) {
-          <div class="text-sm text-gray-600 dark:text-gray-400">
-            <span class="font-medium">Selected: </span>
-            {{ formatTime(selectedRange()!.start) }} - {{ formatTime(selectedRange()!.end) }}
-          </div>
-        }
-      </div>
-
-      @if (isLoading()) {
-        <div class="flex justify-center items-center py-12">
-          <div class="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
-        </div>
-      } @else {
-        <div class="h-[500px] overflow-y-auto border border-gray-200 dark:border-slate-700 rounded-lg">
-          <div class="grid grid-cols-[auto_1fr] min-h-full">
-            <div class="flex flex-col border-r border-gray-200 dark:border-slate-700 bg-gray-50 dark:bg-slate-900 sticky left-0 z-10">
-              @for (hour of hours; track hour) {
-                <div class="h-16 flex items-start justify-end pr-2 pt-1 text-xs text-gray-500 dark:text-gray-400 font-medium border-b border-gray-100 dark:border-slate-800 w-16">
-                  {{ formatHour(hour) }}
-                </div>
-              }
-            </div>
-
-            <div class="flex flex-col w-full relative bg-gray-50 dark:bg-slate-800 select-none">
-              @for (slot of timeSlots(); track slot.time.getTime()) {
-                <div
-                  [ngClass]="getSlotClass(slot)"
-                  class="h-4 w-full border-b border-gray-100 dark:border-slate-700/50 cursor-pointer transition-colors"
-                  (mousedown)="startSelection(slot)"
-                  (mouseenter)="updateSelection(slot)"
-                  (mouseup)="endSelection()"
-                  [title]="getSlotTitle(slot)">
-                </div>
-              }
-            </div>
-          </div>
-        </div>
-
-        <div class="mt-4 flex items-center gap-4 text-xs">
-          <div class="flex items-center gap-2">
-            <div class="w-4 h-4 bg-green-500 rounded"></div>
-            <span class="text-gray-600 dark:text-gray-400">Available</span>
-          </div>
-          <div class="flex items-center gap-2">
-            <div class="w-4 h-4 bg-blue-500 rounded"></div>
-            <span class="text-gray-600 dark:text-gray-400">Selected</span>
-          </div>
-          <div class="flex items-center gap-2">
-            <div class="w-4 h-4 bg-yellow-500 rounded"></div>
-            <span class="text-gray-600 dark:text-gray-400">My Reservation</span>
-          </div>
-          <div class="flex items-center gap-2">
-            <div class="w-4 h-4 bg-red-500 rounded"></div>
-            <span class="text-gray-600 dark:text-gray-400">Reserved</span>
-          </div>
-          <div class="flex items-center gap-2">
-            <div class="w-4 h-4 bg-gray-400 rounded"></div>
-            <span class="text-gray-600 dark:text-gray-400">Past</span>
-          </div>
-        </div>
-      }
-    </div>
-  `,
+  templateUrl: './reservation-calendar-view.component.html',
   styles: []
 })
 export class ReservationCalendarViewComponent implements OnInit {
