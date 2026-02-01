@@ -25,22 +25,21 @@ import { ReservationService } from '../../core/services/reservation.service';
           <div class="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
         </div>
       } @else {
-        <div class="grid grid-cols-[auto_1fr] gap-2">
-          <div class="flex flex-col">
-            <div class="h-8"></div>
-            @for (hour of hours; track hour) {
-              <div class="h-16 flex items-center justify-end pr-2 text-xs text-gray-600 dark:text-gray-400 font-medium">
-                {{ formatHour(hour) }}
-              </div>
-            }
-          </div>
+        <div class="h-[500px] overflow-y-auto border border-gray-200 dark:border-slate-700 rounded-lg">
+          <div class="grid grid-cols-[auto_1fr] min-h-full">
+            <div class="flex flex-col border-r border-gray-200 dark:border-slate-700 bg-gray-50 dark:bg-slate-900 sticky left-0 z-10">
+              @for (hour of hours; track hour) {
+                <div class="h-16 flex items-start justify-end pr-2 pt-1 text-xs text-gray-500 dark:text-gray-400 font-medium border-b border-gray-100 dark:border-slate-800 w-16">
+                  {{ formatHour(hour) }}
+                </div>
+              }
+            </div>
 
-          <div class="overflow-x-auto">
-            <div class="grid grid-cols-96 gap-px bg-gray-200 dark:bg-slate-700 p-px rounded">
+            <div class="flex flex-col w-full relative bg-gray-50 dark:bg-slate-800">
               @for (slot of timeSlots(); track slot.time.getTime()) {
                 <div
                   [ngClass]="getSlotClass(slot)"
-                  class="h-4 cursor-pointer transition-colors"
+                  class="h-4 w-full border-b border-gray-100 dark:border-slate-700/50 cursor-pointer transition-colors"
                   (mousedown)="startSelection(slot)"
                   (mouseenter)="updateSelection(slot)"
                   (mouseup)="endSelection()"
@@ -55,6 +54,10 @@ import { ReservationService } from '../../core/services/reservation.service';
           <div class="flex items-center gap-2">
             <div class="w-4 h-4 bg-green-500 rounded"></div>
             <span class="text-gray-600 dark:text-gray-400">Available</span>
+          </div>
+          <div class="flex items-center gap-2">
+            <div class="w-4 h-4 bg-blue-500 rounded"></div>
+            <span class="text-gray-600 dark:text-gray-400">Selected</span>
           </div>
           <div class="flex items-center gap-2">
             <div class="w-4 h-4 bg-yellow-500 rounded"></div>
@@ -72,11 +75,7 @@ import { ReservationService } from '../../core/services/reservation.service';
       }
     </div>
   `,
-  styles: [`
-    .grid-cols-96 {
-      grid-template-columns: repeat(96, minmax(0, 1fr));
-    }
-  `]
+  styles: []
 })
 export class ReservationCalendarViewComponent implements OnInit {
   private reservationService = inject(ReservationService);
