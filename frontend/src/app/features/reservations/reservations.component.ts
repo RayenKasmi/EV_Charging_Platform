@@ -63,6 +63,7 @@ type ViewMode = 'my-reservations' | 'new-reservation';
 
                 <div class="lg:col-span-1">
                   <app-reservation-creation-form
+                    [selectedTimeRange]="selectedTimeRange()"
                     (reservationCreated)="onReservationCreated()">
                   </app-reservation-creation-form>
                 </div>

@@ -1,8 +1,8 @@
-import { Component, Output, EventEmitter, signal, computed, inject, ChangeDetectionStrategy, OnInit } from '@angular/core';
+import { Component, Input, Output, EventEmitter, signal, computed, inject, ChangeDetectionStrategy, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormBuilder, FormGroup, Validators, ReactiveFormsModule, AbstractControl, ValidationErrors } from '@angular/forms';
 import { ReservationService } from '../../core/services/reservation.service';
-import { Station, Charger, CreateReservationData } from '../../core/models/reservation.model';
+import { Station, Charger, CreateReservationData, TimeRange } from '../../core/models/reservation.model';
 import { Observable, of, map, catchError, debounceTime, switchMap } from 'rxjs';
 
 @Component({
@@ -161,6 +161,29 @@ import { Observable, of, map, catchError, debounceTime, switchMap } from 'rxjs';
 export class ReservationCreationFormComponent implements OnInit {
   private fb = inject(FormBuilder);
   private reservationService = inject(ReservationService);
+
+  @Input() set selectedTimeRange(range: TimeRange | null) {
+    if (range) {
+      const year = range.start.getFullYear();
+      const month = String(range.start.getMonth() + 1).padStart(2, '0');
+      const day = String(range.start.getDate()).padStart(2, '0');
+      const dateStr = `${year}-${month}-${day}`;
+
+      const startHours = String(range.start.getHours()).padStart(2, '0');
+      const startMinutes = String(range.start.getMinutes()).padStart(2, '0');
+      const startStr = `${startHours}:${startMinutes}`;
+
+      const endHours = String(range.end.getHours()).padStart(2, '0');
+      const endMinutes = String(range.end.getMinutes()).padStart(2, '0');
+      const endStr = `${endHours}:${endMinutes}`;
+
+      this.reservationForm.patchValue({
+        date: dateStr,
+        startTime: startStr,
+        endTime: endStr
+      });
+    }
+  }
 
   @Output() reservationCreated = new EventEmitter<void>();
 

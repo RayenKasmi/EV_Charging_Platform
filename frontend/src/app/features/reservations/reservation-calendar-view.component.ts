@@ -35,7 +35,7 @@ import { ReservationService } from '../../core/services/reservation.service';
               }
             </div>
 
-            <div class="flex flex-col w-full relative bg-gray-50 dark:bg-slate-800">
+            <div class="flex flex-col w-full relative bg-gray-50 dark:bg-slate-800 select-none">
               @for (slot of timeSlots(); track slot.time.getTime()) {
                 <div
                   [ngClass]="getSlotClass(slot)"
@@ -171,7 +171,14 @@ export class ReservationCalendarViewComponent implements OnInit {
       new Date(slot.time.getTime() + 15 * 60 * 1000) :
       new Date(this.selectionStart.getTime() + 15 * 60 * 1000);
 
-    this.selectedRange.set({ start, end });
+    // Check if the range includes any reserved/past slots
+    const hasConflict = this.timeSlots().some(s => 
+      s.time >= start && s.time < end && (s.status === 'past' || s.status === 'reserved')
+    );
+
+    if (!hasConflict) {
+      this.selectedRange.set({ start, end });
+    }
   }
 
   endSelection() {
