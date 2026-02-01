@@ -21,12 +21,30 @@ export const routes: Routes = [
         path: 'dashboard',
         loadComponent: () => import('./features/dashboard/dashboard/dashboard').then(m => m.Dashboard)
       },
-      /*
       {
         path: 'stations',
-        loadChildren: () => import('./features/stations/stations.routes').then(m => m.STATION_ROUTES)
+        loadComponent: () => import('./features/stations/station-list/station-list').then(m => m.StationList)
       },
-      */
+      {
+        path: 'stations/:id',
+        loadComponent: () => import('./features/stations/station-detail.component').then(m => m.StationDetailComponent)
+      },
+      {
+        path: 'reservations',
+        loadComponent: () => import('./features/reservations/reservations.component').then(m => m.ReservationsComponent)
+      },
+      {
+        path: 'active-session',
+        loadComponent: () => import('./features/active-session/active-session.component').then(m => m.ActiveSessionComponent)
+      },
+      {
+        path: 'analytics',
+        loadComponent: () => import('./features/analytics/analytics.component').then(m => m.AnalyticsComponent)
+      },
+      {
+        path: 'settings',
+        loadComponent: () => import('./features/settings/settings.component').then(m => m.SettingsComponent)
+      }
     ]
   },
   {

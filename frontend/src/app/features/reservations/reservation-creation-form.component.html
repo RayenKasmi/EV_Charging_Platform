@@ -1,0 +1,145 @@
+<div class="bg-white dark:bg-slate-800 rounded-lg shadow p-6">
+  <h3 class="text-xl font-semibold text-gray-900 dark:text-white mb-4">Create Reservation</h3>
+
+  @if (isLoadingStations()) {
+    <div class="flex justify-center items-center py-12">
+      <div class="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
+    </div>
+  } @else {
+    <form [formGroup]="reservationForm" (ngSubmit)="onSubmit()" class="space-y-4">
+      <div>
+        <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+          Charging Station *
+        </label>
+        <select
+          formControlName="stationId"
+          class="w-full px-3 py-2 border border-gray-300 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-700 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
+          [class.border-red-500]="isFieldInvalid('stationId')">
+          <option value="">Select a station</option>
+          @for (station of stations(); track station.id) {
+            <option [value]="station.id">{{ station.name }} - {{ station.location }}</option>
+          }
+        </select>
+        @if (isFieldInvalid('stationId')) {
+          <p class="mt-1 text-sm text-red-600">Please select a station</p>
+        }
+      </div>
+
+      <div>
+        <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+          Charger Type *
+        </label>
+        <select
+          formControlName="chargerId"
+          [disabled]="!selectedStation()"
+          class="w-full px-3 py-2 border border-gray-300 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-700 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:bg-gray-100 dark:disabled:bg-slate-600 disabled:cursor-not-allowed"
+          [class.border-red-500]="isFieldInvalid('chargerId')">
+          <option value="">Select a charger</option>
+          @for (charger of availableChargers(); track charger.id) {
+            <option [value]="charger.id">
+              {{ charger.type }} - {{ charger.powerOutput }}kW ({{ formatCurrency(charger.hourlyRate) }}/hr)
+            </option>
+          }
+        </select>
+        @if (isFieldInvalid('chargerId')) {
+          <p class="mt-1 text-sm text-red-600">Please select a charger</p>
+        }
+      </div>
+
+      <div class="grid grid-cols-2 gap-4">
+        <div>
+          <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+            Date *
+          </label>
+          <input
+            type="date"
+            formControlName="date"
+            [min]="minDate()"
+            class="w-full px-3 py-2 border border-gray-300 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-700 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
+            [class.border-red-500]="isFieldInvalid('date')" />
+          @if (isFieldInvalid('date')) {
+            <p class="mt-1 text-sm text-red-600">Please select a date</p>
+          }
+        </div>
+      </div>
+
+      <div class="grid grid-cols-2 gap-4">
+        <div>
+          <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+            Start Time *
+          </label>
+          <input
+            type="time"
+            formControlName="startTime"
+            class="w-full px-3 py-2 border border-gray-300 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-700 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
+            [class.border-red-500]="isFieldInvalid('startTime')" />
+          @if (isFieldInvalid('startTime')) {
+            <p class="mt-1 text-sm text-red-600">Please enter a start time</p>
+          }
+        </div>
+
+        <div>
+          <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+            End Time *
+          </label>
+          <input
+            type="time"
+            formControlName="endTime"
+            class="w-full px-3 py-2 border border-gray-300 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-700 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
+            [class.border-red-500]="isFieldInvalid('endTime')" />
+          @if (isFieldInvalid('endTime')) {
+            <p class="mt-1 text-sm text-red-600">
+              {{ getEndTimeError() }}
+            </p>
+          }
+        </div>
+      </div>
+
+      @if (reservationForm.hasError('timeConflict')) {
+        <div class="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg p-3">
+          <p class="text-sm text-red-700 dark:text-red-400">
+            This time slot is already reserved. Please choose a different time.
+          </p>
+        </div>
+      }
+
+      @if (estimatedCost() > 0) {
+        <div class="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg p-4">
+          <div class="flex items-center justify-between">
+            <div>
+              <p class="text-sm font-medium text-gray-700 dark:text-gray-300">Estimated Cost</p>
+              <p class="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                Duration: {{ duration() }} hours
+              </p>
+            </div>
+            <p class="text-3xl font-bold text-blue-600 dark:text-blue-400">
+              {{ formatCurrency(estimatedCost()) }}
+            </p>
+          </div>
+        </div>
+      }
+
+      @if (errorMessage()) {
+        <div class="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg p-3">
+          <p class="text-sm text-red-700 dark:text-red-400">{{ errorMessage() }}</p>
+        </div>
+      }
+
+      <div class="flex gap-3 pt-2">
+        <button
+          type="submit"
+          [disabled]="reservationForm.invalid || isSubmitting()"
+          class="flex-1 bg-blue-600 hover:bg-blue-700 disabled:bg-gray-400 dark:disabled:bg-gray-600 text-white font-semibold py-3 px-4 rounded-lg transition-colors disabled:cursor-not-allowed">
+          @if (isSubmitting()) {
+            <span class="flex items-center justify-center gap-2">
+              <div class="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
+              Creating...
+            </span>
+          } @else {
+            <span>Create Reservation</span>
+          }
+        </button>
+      </div>
+    </form>
+  }
+</div>
