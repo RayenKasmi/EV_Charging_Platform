@@ -17,9 +17,9 @@ class MapScreen extends StatefulWidget {
 class _MapScreenState extends State<MapScreen> {
   final Completer<GoogleMapController> _controller = Completer();
   
-  // San Francisco Default
+  // Tunis Default
   static const CameraPosition _kDefaultCenter = CameraPosition(
-    target: LatLng(37.7749, -122.4194),
+    target: LatLng(36.8346, 10.2359), // Centered near Berges du Lac
     zoom: 12,
   );
 
