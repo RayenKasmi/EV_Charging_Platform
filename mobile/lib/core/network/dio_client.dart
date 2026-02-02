@@ -9,7 +9,7 @@ class DioClient {
   DioClient(this._localStorage) {
     _dio = Dio(
       BaseOptions(
-        baseUrl: 'http://localhost:3000/api', // Change to your API URL
+        baseUrl: 'http://10.0.2.2:3000/api', // Change to your API URL
         connectTimeout: const Duration(seconds: 30),
         receiveTimeout: const Duration(seconds: 30),
         headers: {
