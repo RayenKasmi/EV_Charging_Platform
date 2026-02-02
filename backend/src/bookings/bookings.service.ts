@@ -51,6 +51,7 @@ export class BookingsService {
       orderBy: { reservedFrom: 'asc' },
       select: {
         id: true,
+        userId: true,
         reservedFrom: true,
         reservedTo: true,
         status: true,
