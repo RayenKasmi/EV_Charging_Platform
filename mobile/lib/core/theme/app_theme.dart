@@ -112,8 +112,12 @@ class AppTheme {
     useMaterial3: true,
     brightness: Brightness.dark,
     colorScheme: ColorScheme.fromSeed(
-      seedColor: AppColors.primary,
+      seedColor: AppColors.primary, // Seed generates palette
       brightness: Brightness.dark,
+      primary: AppColors.primaryLight, // Override primary for better contrast
+      surface: AppColors.surfaceDark,
+      background: AppColors.backgroundDark,
+      error: AppColors.error,
     ),
     scaffoldBackgroundColor: AppColors.backgroundDark,
     
@@ -148,7 +152,8 @@ class AppTheme {
     appBarTheme: const AppBarTheme(
       centerTitle: true,
       elevation: 0,
-      backgroundColor: Colors.transparent,
+      backgroundColor: AppColors.backgroundDark, // Match background
+      scrolledUnderElevation: 0,
       iconTheme: IconThemeData(color: AppColors.textPrimaryDark),
       titleTextStyle: TextStyle(
         color: AppColors.textPrimaryDark,
@@ -165,6 +170,8 @@ class AppTheme {
         horizontal: 16,
         vertical: 16,
       ),
+      labelStyle: const TextStyle(color: AppColors.textSecondaryDark),
+      floatingLabelStyle: const TextStyle(color: AppColors.primaryLight),
       border: OutlineInputBorder(
         borderRadius: BorderRadius.circular(12),
         borderSide: const BorderSide(color: AppColors.borderDark),
@@ -175,7 +182,7 @@ class AppTheme {
       ),
       focusedBorder: OutlineInputBorder(
         borderRadius: BorderRadius.circular(12),
-        borderSide: const BorderSide(color: AppColors.primary, width: 2),
+        borderSide: const BorderSide(color: AppColors.primaryLight, width: 2),
       ),
       errorBorder: OutlineInputBorder(
         borderRadius: BorderRadius.circular(12),
@@ -186,6 +193,8 @@ class AppTheme {
     // Button Themes
     elevatedButtonTheme: ElevatedButtonThemeData(
       style: ElevatedButton.styleFrom(
+        backgroundColor: AppColors.primaryLight,
+        foregroundColor: Colors.black, // Dark text on light blue button
         padding: const EdgeInsets.symmetric(
           horizontal: 32,
           vertical: 16,
@@ -203,11 +212,20 @@ class AppTheme {
     
     // Card Theme
     cardTheme: CardThemeData(
-      elevation: 2,
+      elevation: 0, // Flat cards usually look better in dark mode
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(16),
+        side: const BorderSide(color: AppColors.borderDark, width: 1), // Subtle border
       ),
       color: AppColors.surfaceDark,
+    ),
+    
+    iconTheme: const IconThemeData(
+      color: AppColors.textPrimaryDark,
+    ),
+    
+    dividerTheme: const DividerThemeData(
+      color: AppColors.borderDark,
     ),
   );
 }

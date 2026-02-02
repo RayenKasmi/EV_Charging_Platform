@@ -25,6 +25,7 @@ import 'injection.dart' as _i464;
 import 'network/auth_interceptor.dart' as _i426;
 import 'network/socket_service.dart' as _i897;
 import 'services/secure_storage_service.dart' as _i363;
+import 'theme/bloc/theme_cubit.dart' as _i246;
 
 extension GetItInjectableX on _i174.GetIt {
 // initializes the registration of main-scope dependencies inside of GetIt
@@ -40,6 +41,7 @@ extension GetItInjectableX on _i174.GetIt {
     final registerModule = _$RegisterModule();
     gh.singleton<_i558.FlutterSecureStorage>(
         () => registerModule.secureStorage);
+    gh.singleton<_i246.ThemeCubit>(() => _i246.ThemeCubit());
     gh.lazySingleton<_i361.Dio>(() => registerModule.dio);
     gh.lazySingleton<_i897.SocketService>(() => _i897.SocketService());
     gh.factory<_i371.ChargingBloc>(
