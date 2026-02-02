@@ -16,8 +16,14 @@ import 'package:injectable/injectable.dart' as _i526;
 import '../features/auth/data/datasources/auth_api_service.dart' as _i384;
 import '../features/auth/data/repositories/auth_repository.dart' as _i243;
 import '../features/auth/presentation/bloc/auth_bloc.dart' as _i59;
+import '../features/charging/presentation/bloc/charging_bloc.dart' as _i371;
+import '../features/map/data/repositories/mock_station_repository.dart'
+    as _i614;
+import '../features/map/domain/repositories/station_repository.dart' as _i305;
+import '../features/map/presentation/bloc/map_bloc.dart' as _i703;
 import 'injection.dart' as _i464;
 import 'network/auth_interceptor.dart' as _i426;
+import 'network/socket_service.dart' as _i897;
 import 'services/secure_storage_service.dart' as _i363;
 
 extension GetItInjectableX on _i174.GetIt {
@@ -35,6 +41,9 @@ extension GetItInjectableX on _i174.GetIt {
     gh.singleton<_i558.FlutterSecureStorage>(
         () => registerModule.secureStorage);
     gh.lazySingleton<_i361.Dio>(() => registerModule.dio);
+    gh.lazySingleton<_i897.SocketService>(() => _i897.SocketService());
+    gh.factory<_i371.ChargingBloc>(
+        () => _i371.ChargingBloc(gh<_i897.SocketService>()));
     gh.singleton<_i361.Dio>(
       () => registerModule.authDio,
       instanceName: 'authDio',
@@ -43,10 +52,14 @@ extension GetItInjectableX on _i174.GetIt {
         () => _i384.AuthApiService(gh<_i361.Dio>()));
     gh.singleton<_i363.SecureStorageService>(
         () => _i363.SecureStorageService(gh<_i558.FlutterSecureStorage>()));
+    gh.lazySingleton<_i305.StationRepository>(
+        () => _i614.MockStationRepository());
     gh.singleton<_i426.AuthInterceptor>(() => _i426.AuthInterceptor(
           gh<_i363.SecureStorageService>(),
           gh<_i361.Dio>(instanceName: 'authDio'),
         ));
+    gh.factory<_i703.MapBloc>(
+        () => _i703.MapBloc(gh<_i305.StationRepository>()));
     gh.singleton<_i243.AuthRepository>(() => _i243.AuthRepository(
           gh<_i384.AuthApiService>(),
           gh<_i363.SecureStorageService>(),
