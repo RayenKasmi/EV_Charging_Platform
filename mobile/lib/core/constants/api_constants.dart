@@ -2,7 +2,7 @@ class ApiConstants {
   // Base URL - Change this to your backend URL
   static const String baseUrl = String.fromEnvironment(
     'API_URL',
-    defaultValue: 'http://localhost:3000/api',
+    defaultValue: 'http://10.0.2.2:3000',
   );
 
   // Timeout durations
