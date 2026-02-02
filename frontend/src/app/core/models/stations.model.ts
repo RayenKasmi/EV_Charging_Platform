@@ -54,6 +54,25 @@ export interface StationAvailability {
   occupied: number;
   offline: number;
   maintenance: number;
+  updatedAt?: Date;
+}
+
+/**
+ * WebSocket Event interfaces
+ */
+export interface ChargerStatusUpdate {
+  chargerId: string;
+  stationId: string;
+  status: string;
+  updatedAt: Date;
+}
+
+export interface SlotUpdate {
+  chargerId: string;
+  stationId: string;
+  reservedFrom: Date;
+  reservedTo: Date;
+  action: 'created' | 'cancelled' | 'expired';
 }
 
 export interface StationQuery {

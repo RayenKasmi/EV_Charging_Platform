@@ -2,34 +2,7 @@ import { Injectable, inject, signal, OnDestroy } from '@angular/core';
 import { io, Socket } from 'socket.io-client';
 import { Observable, Subject, BehaviorSubject, fromEvent, takeUntil, shareReplay, filter } from 'rxjs';
 import { environment } from '@env/environment';
-
-/**
- * WebSocket Events emitted by the server
- */
-export interface ChargerStatusUpdate {
-  chargerId: string;
-  stationId: string;
-  status: string;
-  updatedAt: Date;
-}
-
-export interface SlotUpdate {
-  chargerId: string;
-  stationId: string;
-  reservedFrom: Date;
-  reservedTo: Date;
-  action: 'created' | 'cancelled' | 'expired';
-}
-
-export interface StationAvailability {
-  stationId: string;
-  total: number;
-  available: number;
-  occupied: number;
-  offline: number;
-  maintenance: number;
-  updatedAt: Date;
-}
+import { ChargerStatusUpdate, SlotUpdate, StationAvailability } from '@core/models/stations.model';
 
 /**
  * WebSocketService

@@ -11,8 +11,8 @@ import {
 } from '../models/reservation.model';
 import { StationsService} from './stations.service';
 import { BookingsApiService, ApiReservation, ChargerSlotsResponse } from './bookings-api.service';
-import { WebSocketService, SlotUpdate } from './websocket.service';
-import { StationQuery, Station as ApiStation, Charger as ApiCharger } from '@core/models/stations.model';
+import { WebSocketService } from './websocket.service';
+import { StationQuery, Station as ApiStation, Charger as ApiCharger, SlotUpdate } from '@core/models/stations.model';
 
 /**
  * ReservationService
