@@ -14,6 +14,7 @@ import {
   ConnectorType,
 } from '@core/models/stations.model';
 import { StationsService } from '@core/services/stations.service';
+import { AuthService } from '@core/services/auth.service';
 import {
   chargerIdUniqueAsyncValidator,
   noWhitespaceValidator,
@@ -28,6 +29,7 @@ import {
 })
 export class StationDetail {
   private stationsService = inject(StationsService);
+  private authService = inject(AuthService);
   private fb = inject(FormBuilder);
   private route = inject(ActivatedRoute);
   private router = inject(Router);
@@ -75,6 +77,22 @@ export class StationDetail {
   readonly station = computed(() => this.stationResource.value());
   readonly availability = computed(() => this.availabilityResource.value());
   readonly chargers = computed(() => this.chargersResource.value());
+  readonly userRole = computed(() => this.authService.userRole());
+  readonly userId = computed(() => this.authService.currentUser()?.id ?? null);
+  readonly canManageStation = computed(() => {
+    const role = this.userRole();
+    const station = this.station();
+    if (!role || !station) {
+      return false;
+    }
+    if (role === 'ADMIN') {
+      return true;
+    }
+    if (role === 'OPERATOR') {
+      return station.operatorId === this.userId();
+    }
+    return false;
+  });
   readonly loading = computed(
     () =>
       this.stationResource.isLoading() ||
