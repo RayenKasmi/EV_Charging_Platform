@@ -1,4 +1,4 @@
-import { Component, Input, Output, EventEmitter, signal, computed, inject, ChangeDetectionStrategy, OnInit, OnChanges, SimpleChanges } from '@angular/core';
+import { Component, input, effect, Output, EventEmitter, signal, computed, inject, ChangeDetectionStrategy, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormBuilder, FormGroup, Validators, ReactiveFormsModule, AbstractControl, ValidationErrors } from '@angular/forms';
 import { ReservationService } from '@core/services/reservation.service';
@@ -12,31 +12,15 @@ import { Observable, of, map, catchError, debounceTime, switchMap } from 'rxjs';
   changeDetection: ChangeDetectionStrategy.OnPush,
   templateUrl: './reservation-creation-form.component.html'
 })
-export class ReservationCreationFormComponent implements OnInit, OnChanges {
+export class ReservationCreationFormComponent implements OnInit {
   private fb = inject(FormBuilder);
   private reservationService = inject(ReservationService);
 
-  // Inputs from parent - station, charger, date selection
-  @Input() stationId = '';
-  @Input() chargerId = '';
-  @Input() selectedDate: Date = new Date();
-
-  @Input() set selectedTimeRange(range: TimeRange | null) {
-    if (range && this.reservationForm) {
-      const startHours = String(range.start.getHours()).padStart(2, '0');
-      const startMinutes = String(range.start.getMinutes()).padStart(2, '0');
-      const startStr = `${startHours}:${startMinutes}`;
-
-      const endHours = String(range.end.getHours()).padStart(2, '0');
-      const endMinutes = String(range.end.getMinutes()).padStart(2, '0');
-      const endStr = `${endHours}:${endMinutes}`;
-
-      this.reservationForm.patchValue({
-        startTime: startStr,
-        endTime: endStr
-      });
-    }
-  }
+  // Signal-based inputs from parent - station, charger, date selection
+  stationId = input<string>('');
+  chargerId = input<string>('');
+  selectedDate = input<Date>(new Date());
+  selectedTimeRange = input<TimeRange | null>(null);
 
   @Output() reservationCreated = new EventEmitter<void>();
 
@@ -45,9 +29,9 @@ export class ReservationCreationFormComponent implements OnInit, OnChanges {
   // Station/charger data from service for display
   private stations = this.reservationService.stations;
   
-  // Computed signals for display
-  selectedStation = computed(() => this.stations().find(s => s.id === this.stationId));
-  selectedCharger = computed(() => this.selectedStation()?.chargers.find(c => c.id === this.chargerId));
+  // Computed signals for display - now properly reactive
+  selectedStation = computed(() => this.stations().find(s => s.id === this.stationId()));
+  selectedCharger = computed(() => this.selectedStation()?.chargers.find(c => c.id === this.chargerId()));
   
   selectedStationName = computed(() => this.selectedStation()?.name || 'No station selected');
   selectedChargerInfo = computed(() => {
@@ -56,7 +40,8 @@ export class ReservationCreationFormComponent implements OnInit, OnChanges {
     return `${charger.type} - ${charger.powerOutput}kW (${this.formatCurrency(charger.hourlyRate || 0)}/hr)`;
   });
   formattedDate = computed(() => {
-    return this.selectedDate.toLocaleDateString('en-US', { 
+    const date = this.selectedDate();
+    return date.toLocaleDateString('en-US', { 
       weekday: 'long', 
       year: 'numeric', 
       month: 'long', 
@@ -64,7 +49,38 @@ export class ReservationCreationFormComponent implements OnInit, OnChanges {
     });
   });
   
-  hasRequiredInputs = computed(() => !!this.stationId && !!this.chargerId);
+  hasRequiredInputs = computed(() => !!this.stationId() && !!this.chargerId());
+
+  constructor() {
+    // Effect to update form when time range changes
+    effect(() => {
+      const range = this.selectedTimeRange();
+      if (range && this.reservationForm) {
+        const startHours = String(range.start.getHours()).padStart(2, '0');
+        const startMinutes = String(range.start.getMinutes()).padStart(2, '0');
+        const startStr = `${startHours}:${startMinutes}`;
+
+        const endHours = String(range.end.getHours()).padStart(2, '0');
+        const endMinutes = String(range.end.getMinutes()).padStart(2, '0');
+        const endStr = `${endHours}:${endMinutes}`;
+
+        this.reservationForm.patchValue({
+          startTime: startStr,
+          endTime: endStr
+        });
+      }
+    });
+
+    // Effect to recalculate cost when inputs change
+    effect(() => {
+      // Track all relevant inputs
+      this.stationId();
+      this.chargerId();
+      this.selectedDate();
+      // Recalculate cost
+      this.updateEstimatedCost();
+    });
+  }
 
   estimatedCost = signal<number>(0);
   duration = signal<number>(0);
@@ -74,15 +90,6 @@ export class ReservationCreationFormComponent implements OnInit, OnChanges {
   ngOnInit() {
     this.initForm();
     this.setupFormListeners();
-  }
-
-  ngOnChanges(changes: SimpleChanges): void {
-    // When inputs change, update the form hidden fields and recalculate cost
-    if (this.reservationForm) {
-      if (changes['stationId'] || changes['chargerId'] || changes['selectedDate']) {
-        this.updateEstimatedCost();
-      }
-    }
   }
 
   private initForm() {
@@ -106,9 +113,9 @@ export class ReservationCreationFormComponent implements OnInit, OnChanges {
 
   private updateEstimatedCost() {
     const values = this.reservationForm?.value;
-    const dateStr = this.formatDateForApi(this.selectedDate);
+    const dateStr = this.formatDateForApi(this.selectedDate());
 
-    if (!this.stationId || !this.chargerId || !values?.startTime || !values?.endTime) {
+    if (!this.stationId() || !this.chargerId() || !values?.startTime || !values?.endTime) {
       this.estimatedCost.set(0);
       this.duration.set(0);
       return;
@@ -122,8 +129,8 @@ export class ReservationCreationFormComponent implements OnInit, OnChanges {
       this.duration.set(Math.round(durationHours * 100) / 100);
 
       const cost = this.reservationService.calculateEstimatedCost(
-        this.chargerId,
-        this.stationId,
+        this.chargerId(),
+        this.stationId(),
         startTime,
         endTime
       );
@@ -138,7 +145,7 @@ export class ReservationCreationFormComponent implements OnInit, OnChanges {
     if (!control.value || !this.reservationForm) return null;
 
     const startTime = this.reservationForm.get('startTime')?.value;
-    const dateStr = this.formatDateForApi(this.selectedDate);
+    const dateStr = this.formatDateForApi(this.selectedDate());
 
     if (!startTime) return null;
 
@@ -154,9 +161,9 @@ export class ReservationCreationFormComponent implements OnInit, OnChanges {
 
   private timeConflictValidator(control: AbstractControl): Observable<ValidationErrors | null> {
     const values = control.value;
-    const dateStr = this.formatDateForApi(this.selectedDate);
+    const dateStr = this.formatDateForApi(this.selectedDate());
 
-    if (!this.stationId || !values.startTime || !values.endTime) {
+    if (!this.stationId() || !values.startTime || !values.endTime) {
       return of(null);
     }
 
@@ -170,7 +177,7 @@ export class ReservationCreationFormComponent implements OnInit, OnChanges {
     return of(null).pipe(
       debounceTime(500),
       switchMap(() =>
-        this.reservationService.validateConflict(this.stationId, startTime, endTime).pipe(
+        this.reservationService.validateConflict(this.stationId(), startTime, endTime).pipe(
           map(hasConflict => hasConflict ? { timeConflict: true } : null),
           catchError(() => of(null))
         )
@@ -199,7 +206,7 @@ export class ReservationCreationFormComponent implements OnInit, OnChanges {
     if (this.reservationForm.invalid || this.isSubmitting() || !this.hasRequiredInputs()) return;
 
     const values = this.reservationForm.value;
-    const dateStr = this.formatDateForApi(this.selectedDate);
+    const dateStr = this.formatDateForApi(this.selectedDate());
     const startTime = this.parseDateTime(dateStr, values.startTime);
     const endTime = this.parseDateTime(dateStr, values.endTime);
 
@@ -209,8 +216,8 @@ export class ReservationCreationFormComponent implements OnInit, OnChanges {
     }
 
     const data: CreateReservationData = {
-      stationId: this.stationId,
-      chargerId: this.chargerId,
+      stationId: this.stationId(),
+      chargerId: this.chargerId(),
       startTime,
       endTime
     };
