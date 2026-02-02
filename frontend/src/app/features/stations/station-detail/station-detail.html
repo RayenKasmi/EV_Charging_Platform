@@ -1,0 +1,253 @@
+<div class="space-y-6">
+  <div class="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
+    <div>
+      <h1 class="text-2xl font-semibold text-gray-900 dark:text-slate-100">Station details</h1>
+      <p class="text-sm text-gray-500 dark:text-slate-400">Manage chargers and availability.</p>
+    </div>
+    <div class="flex items-center gap-3">
+      <a routerLink="/stations" class="rounded-lg border border-gray-200 px-4 py-2 text-sm font-medium text-gray-600 hover:bg-gray-50 dark:border-slate-700 dark:text-slate-200 dark:hover:bg-slate-800">
+        Back
+      </a>
+      @if (station(); as station) {
+        <a
+          [routerLink]="['/stations', station.id, 'edit']"
+          class="rounded-lg border border-blue-100 px-4 py-2 text-sm font-medium text-blue-600 hover:bg-blue-50 dark:border-blue-500/40 dark:text-blue-300 dark:hover:bg-blue-500/10"
+        >
+          Edit
+        </a>
+        <button
+          type="button"
+          (click)="deleteStation()"
+          class="rounded-lg border border-red-100 px-4 py-2 text-sm font-medium text-red-600 hover:bg-red-50 dark:border-red-500/40 dark:text-red-300 dark:hover:bg-red-500/10"
+        >
+          Delete
+        </button>
+      }
+    </div>
+  </div>
+
+  @if (errorMessage()) {
+    <div class="rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700 dark:border-red-500/40 dark:bg-red-500/10 dark:text-red-200">
+      {{ errorMessage() }}
+    </div>
+  }
+
+  @if (loading()) {
+    <div class="rounded-xl border border-gray-200 bg-white p-6 text-sm text-gray-500 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-300">Loading station...</div>
+  } @else if (!station()) {
+    <div class="rounded-xl border border-gray-200 bg-white p-6 text-sm text-gray-500 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-300">Station not found.</div>
+  } @else if (station(); as station) {
+    <div class="rounded-xl border border-gray-200 bg-white p-6 shadow-sm dark:border-slate-700 dark:bg-slate-900">
+      <div class="grid gap-4 md:grid-cols-2">
+        <div>
+          <h2 class="text-lg font-semibold text-gray-900 dark:text-slate-100">{{ station.name }}</h2>
+          <p class="text-sm text-gray-500 dark:text-slate-400">{{ station.address }}, {{ station.city }}</p>
+        </div>
+        <div class="flex items-start justify-end">
+          <span class="rounded-full bg-gray-100 px-3 py-1 text-xs font-semibold text-gray-600 dark:bg-slate-800 dark:text-slate-200">
+            {{ station.status }}
+          </span>
+        </div>
+      </div>
+
+      <div class="mt-6 grid gap-4 md:grid-cols-5">
+        <div class="rounded-lg border border-gray-100 bg-gray-50 p-4 dark:border-slate-700 dark:bg-slate-950">
+          <div class="text-xs uppercase text-gray-500 dark:text-slate-400">Total chargers</div>
+          <div class="mt-2 text-xl font-semibold text-gray-900 dark:text-slate-100">{{ availability().total || 0 }}</div>
+        </div>
+        <div class="rounded-lg border border-gray-100 bg-emerald-50 p-4 dark:border-emerald-500/30 dark:bg-emerald-500/10">
+          <div class="text-xs uppercase text-emerald-700 dark:text-emerald-300">Available</div>
+          <div class="mt-2 text-xl font-semibold text-emerald-700 dark:text-emerald-200">{{ availability().available || 0 }}</div>
+        </div>
+        <div class="rounded-lg border border-gray-100 bg-blue-50 p-4 dark:border-blue-500/30 dark:bg-blue-500/10">
+          <div class="text-xs uppercase text-blue-700 dark:text-blue-300">Occupied</div>
+          <div class="mt-2 text-xl font-semibold text-blue-700 dark:text-blue-200">{{ availability().occupied || 0 }}</div>
+        </div>
+        <div class="rounded-lg border border-gray-100 bg-amber-50 p-4 dark:border-amber-500/30 dark:bg-amber-500/10">
+          <div class="text-xs uppercase text-amber-700 dark:text-amber-300">Maintenance</div>
+          <div class="mt-2 text-xl font-semibold text-amber-700 dark:text-amber-200">{{ availability().maintenance || 0 }}</div>
+        </div>
+        <div class="rounded-lg border border-gray-100 bg-red-50 p-4 dark:border-red-500/30 dark:bg-red-500/10">
+          <div class="text-xs uppercase text-amber-700 dark:text-red-300">Offline</div>
+          <div class="mt-2 text-xl font-semibold text-amber-700 dark:text-red-200">{{ availability().offline || 0 }}</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="grid gap-6 lg:grid-cols-3">
+      <div class="rounded-xl border border-gray-200 bg-white p-6 shadow-sm lg:col-span-2 dark:border-slate-700 dark:bg-slate-900">
+        <div class="flex items-center justify-between">
+          <h2 class="text-lg font-semibold text-gray-900 dark:text-slate-100">Chargers</h2>
+          <button
+            type="button"
+            (click)="refresh()"
+            class="rounded-lg border border-gray-200 px-3 py-1.5 text-xs font-medium text-gray-700 hover:bg-gray-50 dark:border-slate-700 dark:text-slate-200 dark:hover:bg-slate-800"
+          >
+            Refresh
+          </button>
+        </div>
+
+        <div class="mt-4 overflow-x-auto">
+          <table class="min-w-full divide-y divide-gray-200 text-sm dark:divide-slate-700">
+            <thead class="bg-gray-50 text-left text-xs font-semibold uppercase text-gray-500 dark:bg-slate-950 dark:text-slate-400">
+              <tr>
+                <th class="px-4 py-3">Charger ID</th>
+                <th class="px-4 py-3">Type</th>
+                <th class="px-4 py-3">Connector</th>
+                <th class="px-4 py-3">Power</th>
+                <th class="px-4 py-3">Status</th>
+                <th class="px-4 py-3 text-right">Actions</th>
+              </tr>
+            </thead>
+            <tbody class="divide-y divide-gray-100 dark:divide-slate-800">
+              @if (chargers().length === 0) {
+                <tr>
+                  <td colspan="6" class="px-4 py-6 text-center text-gray-500 dark:text-slate-400">No chargers found.</td>
+                </tr>
+              } @else {
+                @for (charger of chargers(); track charger.id) {
+                  <tr>
+                    <td class="px-4 py-3 font-medium text-gray-900 dark:text-slate-100">{{ charger.chargerId }}</td>
+                    <td class="px-4 py-3 text-gray-700 dark:text-slate-300">{{ charger.type }}</td>
+                    <td class="px-4 py-3 text-gray-700 dark:text-slate-300">{{ charger.connectorType }}</td>
+                    <td class="px-4 py-3 text-gray-700 dark:text-slate-300">{{ charger.powerKW }} kW</td>
+                    <td class="px-4 py-3">
+                      <span class="rounded-full px-3 py-1 text-xs font-semibold" [ngClass]="statusBadge(charger.status)">
+                        {{ charger.status }}
+                      </span>
+                    </td>
+                    <td class="px-4 py-3 text-right">
+                      <div class="flex justify-end gap-2">
+                        <button
+                          type="button"
+                          (click)="startEditCharger(charger)"
+                          class="rounded-lg border border-blue-100 px-3 py-1.5 text-xs font-medium text-blue-600 hover:bg-blue-50 dark:border-blue-500/40 dark:text-blue-300 dark:hover:bg-blue-500/10"
+                        >
+                          Edit
+                        </button>
+                        <button
+                          type="button"
+                          (click)="deleteCharger(charger.id)"
+                          class="rounded-lg border border-red-100 px-3 py-1.5 text-xs font-medium text-red-600 hover:bg-red-50 dark:border-red-500/40 dark:text-red-300 dark:hover:bg-red-500/10"
+                        >
+                          Delete
+                        </button>
+                      </div>
+                    </td>
+                  </tr>
+                }
+              }
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <div class="rounded-xl border border-gray-200 bg-white p-6 shadow-sm dark:border-slate-700 dark:bg-slate-900">
+        <div class="flex items-center justify-between">
+          <h2 class="text-lg font-semibold text-gray-900 dark:text-slate-100">
+            @if (editingChargerId()) {
+              Edit charger
+            } @else {
+              Add charger
+            }
+          </h2>
+          @if (editingChargerId()) {
+            <button
+              type="button"
+              (click)="cancelEdit()"
+              class="text-xs font-medium text-gray-500 hover:text-gray-700 dark:text-slate-400 dark:hover:text-slate-200"
+            >
+              Cancel
+            </button>
+          }
+        </div>
+
+        <form [formGroup]="chargerForm" (ngSubmit)="submitCharger()" class="mt-4 space-y-4">
+          <div>
+            <label class="text-xs font-medium text-gray-500 dark:text-slate-400">Charger ID</label>
+            <input
+              formControlName="chargerId"
+              type="text"
+              class="mt-2 w-full rounded-lg border border-gray-200 px-3 py-2 text-sm focus:border-blue-500 focus:outline-none dark:border-slate-700 dark:bg-slate-900 dark:text-slate-100"
+            />
+            @if (chargerForm.controls.chargerId.errors?.['chargerIdTaken'] && (chargerForm.controls.chargerId.touched || submitted())) {
+              <p class="mt-1 text-xs text-red-600 dark:text-red-300">Charger ID is already in use.</p>
+            }
+            @if (showError(chargerForm.controls.chargerId) && !chargerForm.controls.chargerId.errors?.['chargerIdTaken']) {
+              <p class="mt-1 text-xs text-red-600 dark:text-red-300">Use 3–30 chars (letters, numbers, _ or -).</p>
+            }
+          </div>
+          <div>
+            <label class="text-xs font-medium text-gray-500 dark:text-slate-400">Type</label>
+            <select
+              formControlName="type"
+              class="mt-2 w-full rounded-lg border border-gray-200 px-3 py-2 text-sm focus:border-blue-500 focus:outline-none dark:border-slate-700 dark:bg-slate-900 dark:text-slate-100"
+            >
+              @for (type of chargerTypes; track type) {
+                <option [value]="type">{{ type }}</option>
+              }
+            </select>
+          </div>
+          <div>
+            <label class="text-xs font-medium text-gray-500 dark:text-slate-400">Connector</label>
+            <select
+              formControlName="connectorType"
+              class="mt-2 w-full rounded-lg border border-gray-200 px-3 py-2 text-sm focus:border-blue-500 focus:outline-none dark:border-slate-700 dark:bg-slate-900 dark:text-slate-100"
+            >
+              @for (connector of connectorTypes; track connector) {
+                <option [value]="connector">{{ connector }}</option>
+              }
+            </select>
+          </div>
+          <div>
+            <label class="text-xs font-medium text-gray-500 dark:text-slate-400">Power (kW)</label>
+            <input
+              formControlName="powerKW"
+              type="number"
+              min="1"
+              class="mt-2 w-full rounded-lg border border-gray-200 px-3 py-2 text-sm focus:border-blue-500 focus:outline-none dark:border-slate-700 dark:bg-slate-900 dark:text-slate-100"
+            />
+            @if (showError(chargerForm.controls.powerKW)) {
+              <p class="mt-1 text-xs text-red-600 dark:text-red-300">Power must be at least 1 kW.</p>
+            }
+          </div>
+          <div>
+            <label class="text-xs font-medium text-gray-500 dark:text-slate-400">Rate (per kWh)</label>
+            <input
+              formControlName="currentRate"
+              type="number"
+              min="0"
+              class="mt-2 w-full rounded-lg border border-gray-200 px-3 py-2 text-sm focus:border-blue-500 focus:outline-none dark:border-slate-700 dark:bg-slate-900 dark:text-slate-100"
+            />
+            @if (showError(chargerForm.controls.currentRate)) {
+              <p class="mt-1 text-xs text-red-600 dark:text-red-300">Rate must be 0 or higher.</p>
+            }
+          </div>
+          <div>
+            <label class="text-xs font-medium text-gray-500 dark:text-slate-400">Status</label>
+            <select
+              formControlName="status"
+              class="mt-2 w-full rounded-lg border border-gray-200 px-3 py-2 text-sm focus:border-blue-500 focus:outline-none dark:border-slate-700 dark:bg-slate-900 dark:text-slate-100"
+            >
+              @for (status of chargerStatuses; track status) {
+                <option [value]="status">{{ status }}</option>
+              }
+            </select>
+          </div>
+
+          <button
+            type="submit"
+            [disabled]="loading()"
+            class="w-full rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700 disabled:cursor-not-allowed disabled:bg-blue-400 dark:bg-blue-500 dark:hover:bg-blue-600"
+          >
+            @if (editingChargerId()) {
+              Update charger
+            } @else {
+              Add charger
+            }
+          </button>
+        </form>
+      </div>
+    </div>
+  }
+</div>
