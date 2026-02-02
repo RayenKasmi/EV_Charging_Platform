@@ -1,4 +1,4 @@
-import { Component, signal, ChangeDetectionStrategy, inject, OnInit } from '@angular/core';
+import { Component, signal, ChangeDetectionStrategy, inject, effect } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { ReservationCalendarViewComponent } from './reservation-calendar-view.component';
 import { ReservationCreationFormComponent } from './reservation-creation-form.component';
@@ -20,7 +20,7 @@ type ViewMode = 'my-reservations' | 'new-reservation';
   changeDetection: ChangeDetectionStrategy.OnPush,
   templateUrl: './reservations.component.html'
 })
-export class ReservationsComponent implements OnInit {
+export class ReservationsComponent {
   private readonly reservationService = inject(ReservationService);
 
   currentView = signal<ViewMode>('my-reservations');
@@ -29,29 +29,19 @@ export class ReservationsComponent implements OnInit {
   selectedDate = signal<Date>(new Date());
   selectedTimeRange = signal<TimeRange | null>(null);
 
-  // Station and charger lists from the service
+  // Station and charger lists from the service (computed signal - auto-updates)
   stations = this.reservationService.stations;
+  isLoadingStations = this.reservationService.isLoadingStations;
+  
   selectedStation = signal<Station | null>(null);
   chargers = signal<Charger[]>([]);
-  isLoadingStations = signal(false);
 
-  ngOnInit(): void {
-    this.loadStations();
-  }
-
-  private loadStations(): void {
-    this.isLoadingStations.set(true);
-    this.reservationService.getStations().subscribe({
-      next: () => {
-        this.isLoadingStations.set(false);
-        // Auto-select first station if available
-        const stationList = this.stations();
-        if (stationList.length > 0 && !this.selectedStationId()) {
-          this.onStationChange(stationList[0].id);
-        }
-      },
-      error: () => {
-        this.isLoadingStations.set(false);
+  constructor() {
+    // Effect to auto-select first station when stations load
+    effect(() => {
+      const stationList = this.stations();
+      if (stationList.length > 0 && !this.selectedStationId()) {
+        this.onStationChange(stationList[0].id);
       }
     });
   }

@@ -21,6 +21,10 @@ export class StationsService {
   private http = inject(HttpClient);
   private apiUrl = `${environment.apiUrl}/stations`;
 
+  // =====================================================
+  // HTTP RESOURCE METHODS (Signal-based)
+  // =====================================================
+
   stationsResource(query: Signal<StationQuery>): HttpResourceRef<StationListResponse> {
     return httpResource(
       () => ({
@@ -79,6 +83,10 @@ export class StationsService {
     );
   }
 
+  // =====================================================
+  // CRUD OPERATIONS (Write operations need Observables)
+  // =====================================================
+
   createStation(payload: CreateStationPayload): Observable<Station> {
     return this.http.post<Station>(this.apiUrl, payload);
   }
@@ -111,6 +119,47 @@ export class StationsService {
     return this.http.get<{ available: boolean }>(`${this.apiUrl}/chargers/check`, {
       params: { chargerId },
     });
+  }
+
+  // =====================================================
+  // UTILITY MAPPERS
+  // =====================================================
+
+  /**
+   * Map charger type from backend enum to display string
+   */
+  mapChargerType(type: string): string {
+    const typeMap: Record<string, string> = {
+      'LEVEL_2': 'Level 2',
+      'DC_FAST': 'DC Fast',
+    };
+    return typeMap[type] || type;
+  }
+
+  /**
+   * Map connector type from backend enum to display string
+   */
+  mapConnectorType(type: string): string {
+    const connectorMap: Record<string, string> = {
+      'CCS': 'CCS',
+      'CHADEMO': 'CHAdeMO',
+      'TYPE_2': 'Type 2',
+      'J1772': 'J1772',
+    };
+    return connectorMap[type] || type;
+  }
+
+  /**
+   * Map charger status to display-friendly format
+   */
+  mapChargerStatus(status: string): 'Available' | 'In Use' | 'Offline' | 'Maintenance' {
+    const statusMap: Record<string, 'Available' | 'In Use' | 'Offline' | 'Maintenance'> = {
+      'AVAILABLE': 'Available',
+      'OCCUPIED': 'In Use',
+      'OFFLINE': 'Offline',
+      'MAINTENANCE': 'Maintenance',
+    };
+    return statusMap[status] || 'Offline';
   }
 
   private buildParamRecord(

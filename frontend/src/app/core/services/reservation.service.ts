@@ -1,4 +1,4 @@
-import { Injectable, inject, signal, computed, OnDestroy } from '@angular/core';
+import { Injectable, inject, signal, computed, OnDestroy, effect } from '@angular/core';
 import { Observable, of, throwError, Subject } from 'rxjs';
 import { map, tap, catchError, takeUntil } from 'rxjs/operators';
 import {
@@ -9,9 +9,10 @@ import {
   TimeRange,
   ReservationStatus,
 } from '../models/reservation.model';
-import { StationsApiService, ApiStation, ApiCharger } from './stations-api.service';
+import { StationsService} from './stations.service';
 import { BookingsApiService, ApiReservation, ChargerSlotsResponse } from './bookings-api.service';
 import { WebSocketService, SlotUpdate } from './websocket.service';
+import { StationQuery, Station as ApiStation, Charger as ApiCharger } from '@core/models/stations.model';
 
 /**
  * ReservationService
@@ -58,7 +59,7 @@ import { WebSocketService, SlotUpdate } from './websocket.service';
   providedIn: 'root'
 })
 export class ReservationService implements OnDestroy {
-  private stationsApi = inject(StationsApiService);
+  private stationsService = inject(StationsService);
   private bookingsApi = inject(BookingsApiService);
   private wsService = inject(WebSocketService);
 
@@ -76,18 +77,30 @@ export class ReservationService implements OnDestroy {
   public readonly reservations = this._reservations.asReadonly();
 
   /**
-   * Local cache of stations
+   * Query signal for stations resource - triggers refetch when changed
    */
-  private _stations = signal<Station[]>([]);
-  public readonly stations = this._stations.asReadonly();
+  private stationsQuery = signal<StationQuery>({ page: 1, limit: 100 });
 
   /**
-   * Loading states
+   * Stations resource using httpResource - declarative data fetching
+   */
+  private stationsResource = this.stationsService.stationsResource(this.stationsQuery);
+
+  /**
+   * Stations mapped to frontend model - computed from resource
+   */
+  public readonly stations = computed(() => {
+    const response = this.stationsResource.value();
+    if (!response?.data) return [];
+    return this.mapApiStationsToModel(response.data as unknown as ApiStation[]);
+  });
+
+  /**
+   * Loading states - derived from resource
    */
   private _isLoadingReservations = signal(false);
-  private _isLoadingStations = signal(false);
   public readonly isLoadingReservations = this._isLoadingReservations.asReadonly();
-  public readonly isLoadingStations = this._isLoadingStations.asReadonly();
+  public readonly isLoadingStations = computed(() => this.stationsResource.isLoading());
 
   /**
    * Currently subscribed charger for WebSocket updates
@@ -306,80 +319,43 @@ export class ReservationService implements OnDestroy {
   }
 
   // =====================================================
-  // STATIONS API
+  // STATIONS API (using httpResource)
   // =====================================================
 
   /**
-   * Get all stations from API
-   * Transforms API response to frontend model
+   * Refresh stations data - triggers resource refetch
    */
-  getStations(): Observable<Station[]> {
-    this._isLoadingStations.set(true);
-
-    return this.stationsApi.getStations().pipe(
-      map(response => this.mapApiStationsToModel(response.data)),
-      tap(stations => {
-        this._stations.set(stations);
-        this._isLoadingStations.set(false);
-      }),
-      catchError(error => {
-        this._isLoadingStations.set(false);
-        return throwError(() => error);
-      })
-    );
+  refreshStations(): void {
+    this.stationsResource.reload();
   }
 
   /**
-   * Get a single station by ID
+   * Get a single station by ID from cache
    */
-  getStationById(id: string): Observable<Station | undefined> {
-    // Check cache first
-    const cached = this._stations().find(s => s.id === id);
-    if (cached) {
-      return of(cached);
-    }
-
-    // Fetch from API
-    return this.stationsApi.getStation(id).pipe(
-      map(apiStation => this.mapSingleApiStation(apiStation)),
-      tap(station => {
-        // Add to cache
-        this._stations.update(stations => {
-          const existing = stations.findIndex(s => s.id === station.id);
-          if (existing >= 0) {
-            const updated = [...stations];
-            updated[existing] = station;
-            return updated;
-          }
-          return [...stations, station];
-        });
-      })
-    );
+  getStationById(id: string): Station | undefined {
+    return this.stations().find(s => s.id === id);
   }
 
   /**
    * Check charger availability for a time range
    */
-  checkAvailability(stationId: string, timeRange: TimeRange): Observable<Charger[]> {
-    return this.getStationById(stationId).pipe(
-      map(station => {
-        if (!station) return [];
+  checkAvailability(stationId: string, timeRange: TimeRange): Charger[] {
+    const station = this.getStationById(stationId);
+    if (!station) return [];
 
-        // Get conflicting reservations
-        const conflictingReservations = this._reservations().filter(r =>
-          r.stationId === stationId &&
-          r.status !== 'CANCELLED' &&
-          r.status !== 'COMPLETED' &&
-          this.timeRangesOverlap(
-            { start: r.startTime, end: r.endTime },
-            timeRange
-          )
-        );
-
-        const unavailableChargerIds = new Set(conflictingReservations.map(r => r.chargerId));
-        return station.chargers.filter(c => !unavailableChargerIds.has(c.id));
-      })
+    // Get conflicting reservations
+    const conflictingReservations = this._reservations().filter(r =>
+      r.stationId === stationId &&
+      r.status !== 'CANCELLED' &&
+      r.status !== 'COMPLETED' &&
+      this.timeRangesOverlap(
+        { start: r.startTime, end: r.endTime },
+        timeRange
+      )
     );
+
+    const unavailableChargerIds = new Set(conflictingReservations.map(r => r.chargerId));
+    return station.chargers.filter(c => !unavailableChargerIds.has(c.id));
   }
 
   /**
@@ -414,7 +390,7 @@ export class ReservationService implements OnDestroy {
     startTime: Date,
     endTime: Date
   ): number {
-    const station = this._stations().find(s => s.id === stationId);
+    const station = this.getStationById(stationId);
     const charger = station?.chargers.find(c => c.id === chargerId);
 
     if (!charger) return 0;
@@ -436,7 +412,7 @@ export class ReservationService implements OnDestroy {
 
   private mapSingleApiReservation(r: ApiReservation): Reservation {
     const chargerType = r.charger?.type 
-      ? this.stationsApi.mapChargerType(r.charger.type) 
+      ? this.stationsService.mapChargerType(r.charger.type) 
       : undefined;
 
     // Calculate hourly rate from power and a base rate
@@ -456,7 +432,7 @@ export class ReservationService implements OnDestroy {
       stationName: r.charger?.station?.name,
       chargerType,
       connectorType: r.charger?.connectorType 
-        ? this.stationsApi.mapConnectorType(r.charger.connectorType)
+        ? this.stationsService.mapConnectorType(r.charger.connectorType)
         : undefined,
       createdAt: new Date(r.createdAt),
     };
@@ -498,28 +474,21 @@ export class ReservationService implements OnDestroy {
     return {
       id: c.id,
       chargerId: c.chargerId,
-      type: this.stationsApi.mapChargerType(c.type),
-      connectorType: this.stationsApi.mapConnectorType(c.connectorType),
+      type: this.stationsService.mapChargerType(c.type),
+      connectorType: this.stationsService.mapConnectorType(c.connectorType),
       powerOutput: c.powerKW,
       hourlyRate: c.currentRate || c.powerKW * 0.35, // Default rate based on power
-      status: this.stationsApi.mapChargerStatus(c.status),
+      status: this.stationsService.mapChargerStatus(c.status),
     };
   }
 
   /**
-   * Update charger status in local cache
+   * Update charger status - triggers resource reload for fresh data
+   * With httpResource, we don't maintain local cache - we refetch
    */
   private updateChargerStatusInCache(chargerId: string, status: string): void {
-    this._stations.update(stations =>
-      stations.map(station => ({
-        ...station,
-        chargers: station.chargers.map(charger =>
-          charger.id === chargerId
-            ? { ...charger, status: this.stationsApi.mapChargerStatus(status) }
-            : charger
-        ),
-      }))
-    );
+    // Trigger a reload to get fresh data from server
+    this.stationsResource.reload();
   }
 
   /**
