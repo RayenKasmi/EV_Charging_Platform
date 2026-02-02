@@ -1,4 +1,4 @@
-import { Controller, Get, Post, Patch, Delete, Body, Param, UseGuards, Query, Request } from '@nestjs/common';
+import { Controller, Get, Post, Patch, Delete, Body, Param, UseGuards, Query, BadRequestException } from '@nestjs/common';
 import { ApiTags, ApiOperation, ApiBearerAuth, ApiResponse } from '@nestjs/swagger';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { RolesGuard } from '../auth/guards/roles.guard';
@@ -105,6 +105,18 @@ export class StationsController {
       userId,
       roles
     );
+  }
+
+  @Get('chargers/check')
+  @ApiOperation({ summary: 'Check if chargerId is available' })
+  @ApiResponse({ status: 200, description: 'Return availability status' })
+  async checkChargerId(@Query('chargerId') chargerId: string) {
+    if (!chargerId) {
+      throw new BadRequestException('chargerId query parameter is required');
+    }
+
+    const available = await this.chargerService.isChargerIdAvailable(chargerId);
+    return { available };
   }
 
   @Get(':id/chargers')

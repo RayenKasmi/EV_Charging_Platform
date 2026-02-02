@@ -306,7 +306,7 @@ export class StationsService {
       ).length,
       maintenance:station.chargers.filter(
         (c) => c.status === 'MAINTENANCE',
-      )
+      ).length
     };
   }
 

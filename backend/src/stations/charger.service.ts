@@ -19,6 +19,15 @@ export class ChargersService {
     private readonly eventsService: EventsService,
   ) {}
 
+  async isChargerIdAvailable(chargerId: string) {
+    const existing = await this.prisma.charger.findUnique({
+      where: { chargerId },
+      select: { id: true },
+    });
+
+    return !existing;
+  }
+
   async create(
     stationId: string,
     createChargerDto: CreateChargerDto,
