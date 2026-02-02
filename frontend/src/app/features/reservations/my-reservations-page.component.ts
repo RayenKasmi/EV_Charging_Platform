@@ -74,13 +74,14 @@ export class MyReservationsPageComponent implements OnInit, OnDestroy {
     this.isLoading.set(true);
     this.errorMessage.set('');
 
-    this.reservationService.getReservations('1').subscribe({
+    // Remove hardcoded user ID - API uses JWT token for authentication
+    this.reservationService.getReservations().subscribe({
       next: (reservations) => {
         this.reservations.set(reservations);
         this.isLoading.set(false);
       },
       error: (error) => {
-        this.errorMessage.set(error.message || 'Failed to load reservations');
+        this.errorMessage.set(error?.error?.message || error.message || 'Failed to load reservations');
         this.isLoading.set(false);
       }
     });

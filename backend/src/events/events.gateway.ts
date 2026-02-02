@@ -15,6 +15,7 @@ import { Logger } from '@nestjs/common';
   cors: {
     origin: [
       'http://localhost:4200', // Angular dev
+      'http://localhost:4300',
       'http://localhost:3000', // Alternative frontend
       process.env.FRONTEND_URL,
     ].filter(Boolean),
