@@ -12,14 +12,9 @@ import { Observable, of, map, catchError, debounceTime, switchMap } from 'rxjs';
   changeDetection: ChangeDetectionStrategy.OnPush,
   templateUrl: './reservation-creation-form.component.html'
 })
-export class ReservationCreationFormComponent implements OnInit, OnChanges {
+export class ReservationCreationFormComponent implements OnInit {
   private fb = inject(FormBuilder);
   private reservationService = inject(ReservationService);
-
-  // Inputs from parent - station, charger, date selection
-  @Input() stationId = '';
-  @Input() chargerId = '';
-  @Input() selectedDate: Date = new Date();
 
   // Signal-based inputs from parent - station, charger, date selection
   stationId = input<string>('');
@@ -56,6 +51,11 @@ export class ReservationCreationFormComponent implements OnInit, OnChanges {
   
   hasRequiredInputs = computed(() => !!this.stationId() && !!this.chargerId());
 
+  estimatedCost = signal<number>(0);
+  duration = signal<number>(0);
+  isSubmitting = signal(false);
+  errorMessage = signal<string>('');
+
   constructor() {
     // Effect to update form when time range changes
     effect(() => {
@@ -87,23 +87,9 @@ export class ReservationCreationFormComponent implements OnInit, OnChanges {
     });
   }
 
-  estimatedCost = signal<number>(0);
-  duration = signal<number>(0);
-  isSubmitting = signal(false);
-  errorMessage = signal<string>('');
-
   ngOnInit() {
     this.initForm();
     this.setupFormListeners();
-  }
-
-  ngOnChanges(changes: SimpleChanges): void {
-    // When inputs change, update the form hidden fields and recalculate cost
-    if (this.reservationForm) {
-      if (changes['stationId'] || changes['chargerId'] || changes['selectedDate']) {
-        this.updateEstimatedCost();
-      }
-    }
   }
 
   private initForm() {
@@ -137,8 +123,6 @@ export class ReservationCreationFormComponent implements OnInit, OnChanges {
 
     const startTime = this.parseDateTime(dateStr, values.startTime);
     const endTime = this.parseDateTime(dateStr, values.endTime);
-    const startTime = this.parseDateTime(dateStr, values.startTime);
-    const endTime = this.parseDateTime(dateStr, values.endTime);
 
     if (startTime && endTime && endTime > startTime) {
       const durationHours = (endTime.getTime() - startTime.getTime()) / (1000 * 60 * 60);
@@ -160,15 +144,12 @@ export class ReservationCreationFormComponent implements OnInit, OnChanges {
   private endTimeValidator(control: AbstractControl): ValidationErrors | null {
     if (!control.value || !this.reservationForm) return null;
 
-    const startTime = this.reservationForm.get('startTime')?.value;
+    const startTimeValue = this.reservationForm.get('startTime')?.value;
     const dateStr = this.formatDateForApi(this.selectedDate());
 
-    if (!startTime) return null;
-    if (!startTime) return null;
+    if (!startTimeValue) return null;
 
-    const start = this.parseDateTime(dateStr, startTime);
-    const end = this.parseDateTime(dateStr, control.value);
-    const start = this.parseDateTime(dateStr, startTime);
+    const start = this.parseDateTime(dateStr, startTimeValue);
     const end = this.parseDateTime(dateStr, control.value);
 
     if (start && end && end <= start) {
@@ -186,8 +167,6 @@ export class ReservationCreationFormComponent implements OnInit, OnChanges {
       return of(null);
     }
 
-    const startTime = this.parseDateTime(dateStr, values.startTime);
-    const endTime = this.parseDateTime(dateStr, values.endTime);
     const startTime = this.parseDateTime(dateStr, values.startTime);
     const endTime = this.parseDateTime(dateStr, values.endTime);
 
@@ -223,15 +202,7 @@ export class ReservationCreationFormComponent implements OnInit, OnChanges {
     return `${year}-${month}-${day}`;
   }
 
-  private formatDateForApi(date: Date): string {
-    const year = date.getFullYear();
-    const month = String(date.getMonth() + 1).padStart(2, '0');
-    const day = String(date.getDate()).padStart(2, '0');
-    return `${year}-${month}-${day}`;
-  }
-
   onSubmit() {
-    if (this.reservationForm.invalid || this.isSubmitting() || !this.hasRequiredInputs()) return;
     if (this.reservationForm.invalid || this.isSubmitting() || !this.hasRequiredInputs()) return;
 
     const values = this.reservationForm.value;
