@@ -8,7 +8,7 @@ import '../models/register_request_model.dart';
 part 'auth_api_service.g.dart';
 
 @lazySingleton
-@RestApi(baseUrl: 'http://10.0.2.2:3000/auth')
+@RestApi(baseUrl: '/auth')
 abstract class AuthApiService {
   @factoryMethod
   factory AuthApiService(Dio dio) = _AuthApiService;

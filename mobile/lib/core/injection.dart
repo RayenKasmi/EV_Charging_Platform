@@ -1,4 +1,5 @@
 import 'package:dio/dio.dart';
+import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:get_it/get_it.dart';
 import 'package:injectable/injectable.dart';
@@ -17,6 +18,18 @@ final getIt = GetIt.instance;
 )
 void configureDependencies() => getIt.init();
 
+// Get base URL based on platform
+String get _baseUrl {
+  // For web, use localhost
+  if (kIsWeb) {
+    return 'http://localhost:3000';
+  }
+  // For Android emulator, use 10.0.2.2
+  // For iOS simulator, use localhost
+  // For physical devices, use your machine's IP address
+  return 'http://10.0.2.2:3000';
+}
+
 @module
 abstract class RegisterModule {
   @singleton
@@ -31,7 +44,7 @@ abstract class RegisterModule {
   Dio get authDio {
     final dio = Dio(
       BaseOptions(
-        baseUrl: 'http://10.0.2.2:3000',
+        baseUrl: _baseUrl,
         connectTimeout: const Duration(seconds: 30),
         receiveTimeout: const Duration(seconds: 30),
         headers: {
@@ -58,7 +71,7 @@ abstract class RegisterModule {
   Dio get dio {
     final dio = Dio(
       BaseOptions(
-        baseUrl: 'http://10.0.2.2:3000',
+        baseUrl: _baseUrl,
         connectTimeout: const Duration(seconds: 30),
         receiveTimeout: const Duration(seconds: 30),
         headers: {
