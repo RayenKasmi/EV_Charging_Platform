@@ -14,7 +14,7 @@ class _ApiClient implements ApiClient {
     this.baseUrl,
     this.errorLogger,
   }) {
-    baseUrl ??= 'https://localhost:3000';
+    baseUrl ??= 'https://10.0.2.2:3000';
   }
 
   final Dio _dio;

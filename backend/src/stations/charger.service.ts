@@ -9,11 +9,15 @@ import { CreateChargerDto } from './dtos/create-charger.dto';
 import { UpdateChargerDto } from './dtos/update-charger.dto';
 import { ChargerStatus } from './enums';
 import { UserRole } from '../auth/enums/user-role.enum';
+import { EventsService } from '../events/events.service';
 
 
 @Injectable()
 export class ChargersService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly eventsService: EventsService,
+  ) {}
 
   async isChargerIdAvailable(chargerId: string) {
     const existing = await this.prisma.charger.findUnique({
@@ -160,9 +164,19 @@ export class ChargersService {
       throw new NotFoundException(`Charger with ID ${chargerId} not found`);
     }
 
-    return await this.prisma.charger.update({
+    const updatedCharger = await this.prisma.charger.update({
       where: { id: chargerId },
       data: { status: status as any },
     });
+
+    // Emit real-time status update
+    this.eventsService.emitChargerStatusUpdate({
+      chargerId: updatedCharger.id,
+      stationId: updatedCharger.stationId,
+      status: updatedCharger.status,
+      updatedAt: updatedCharger.updatedAt,
+    });
+
+    return updatedCharger;
   }
 }

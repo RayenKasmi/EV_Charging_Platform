@@ -1,48 +1,134 @@
 import 'package:flutter/material.dart';
-import 'package:provider/provider.dart';
-import 'core/network/dio_client.dart';
-import 'core/network/api_client.dart';
-import 'core/storage/local_storage.dart';
-import 'core/theme/app_theme.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
+import 'core/injection.dart';
+import 'features/auth/presentation/bloc/auth_bloc.dart';
+import 'features/auth/presentation/bloc/auth_event.dart';
+import 'features/auth/presentation/bloc/auth_state.dart';
+import 'features/auth/presentation/screens/login_screen.dart';
+import 'features/auth/presentation/screens/register_screen.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
-  
-  // Initialize Local Storage
-  await LocalStorage.init();
-  
+
+  // Configure dependency injection
+  configureDependencies();
+
   runApp(const MyApp());
 }
 
 class MyApp extends StatelessWidget {
-  const MyApp({Key? key}) : super(key: key);
+  const MyApp({super.key});
 
   @override
   Widget build(BuildContext context) {
-    // Initialize dependencies
-    final localStorage = LocalStorage();
-    final dioClient = DioClient(localStorage);
-    final apiClient = ApiClient(dioClient.dio);
-
-    return MultiProvider(
-      providers: [
-        // Provide dependencies to the app
-        Provider<LocalStorage>.value(value: localStorage),
-        Provider<ApiClient>.value(value: apiClient),
-        
-        // TODO: Team adds ViewModels here using ChangeNotifierProvider
-        // Example:
-        // ChangeNotifierProvider(
-        //   create: (_) => AuthViewModel(authRepository),
-        // ),
-      ],
+    return BlocProvider(
+      create: (context) => getIt<AuthBloc>()..add(const AuthCheckRequested()),
       child: MaterialApp(
-        title: 'EV Charging App',
+        title: 'EV Charging Platform',
         debugShowCheckedModeBanner: false,
-        theme: AppTheme.lightTheme,
-        darkTheme: AppTheme.darkTheme,
-        themeMode: ThemeMode.system,
-        home: const HomePage(),
+        theme: ThemeData(
+          colorScheme: ColorScheme.fromSeed(
+            seedColor: Colors.blue,
+            brightness: Brightness.light,
+          ),
+          useMaterial3: true,
+          fontFamily: 'Roboto',
+        ),
+        home: const AuthGate(),
+        routes: {
+          '/login': (context) => const LoginScreen(),
+          '/register': (context) => const RegisterScreen(),
+          '/home': (context) => const HomeScreen(),
+        },
+      ),
+    );
+  }
+}
+
+class AuthGate extends StatelessWidget {
+  const AuthGate({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    return BlocBuilder<AuthBloc, AuthState>(
+      builder: (context, state) {
+        if (state is AuthLoading || state is AuthInitial) {
+          return const Scaffold(
+            body: Center(
+              child: CircularProgressIndicator(),
+            ),
+          );
+        } else if (state is AuthAuthenticated) {
+          return const HomeScreen();
+        } else {
+          return const LoginScreen();
+        }
+      },
+    );
+  }
+}
+
+class HomeScreen extends StatelessWidget {
+  const HomeScreen({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(
+        title: const Text('Home'),
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.logout),
+            onPressed: () {
+              context.read<AuthBloc>().add(const AuthLogoutRequested());
+            },
+          ),
+        ],
+      ),
+      body: BlocBuilder<AuthBloc, AuthState>(
+        builder: (context, state) {
+          if (state is AuthAuthenticated) {
+            return Center(
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  const Icon(
+                    Icons.check_circle,
+                    size: 80,
+                    color: Colors.green,
+                  ),
+                  const SizedBox(height: 24),
+                  Text(
+                    'Welcome, ${state.user.fullName}!',
+                    style: Theme.of(context).textTheme.headlineMedium,
+                  ),
+                  const SizedBox(height: 8),
+                  Text(
+                    state.user.email,
+                    style: Theme.of(context).textTheme.bodyLarge?.copyWith(
+                          color: Colors.grey.shade600,
+                        ),
+                  ),
+                  const SizedBox(height: 32),
+                  ElevatedButton.icon(
+                    onPressed: () {
+                      context.read<AuthBloc>().add(const AuthLogoutRequested());
+                    },
+                    icon: const Icon(Icons.logout),
+                    label: const Text('Logout'),
+                    style: ElevatedButton.styleFrom(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 24,
+                        vertical: 12,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            );
+          }
+          return const SizedBox();
+        },
       ),
     );
   }
