@@ -53,14 +53,14 @@ export interface StationAvailability {
   available: number;
   occupied: number;
   offline: number;
-  maintenance: number | Charger[];
+  maintenance: number;
 }
 
 export interface StationQuery {
   page?: number;
   limit?: number;
   status?: StationStatus;
-  operatorId?: string;
+  operatorName?: string;
   latitude?: number;
   longitude?: number;
   radius?: number;

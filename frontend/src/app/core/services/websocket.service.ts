@@ -2,7 +2,6 @@ import { Injectable, inject, signal, OnDestroy } from '@angular/core';
 import { io, Socket } from 'socket.io-client';
 import { Observable, Subject, BehaviorSubject, fromEvent, takeUntil, shareReplay, filter } from 'rxjs';
 import { environment } from '@env/environment';
-import { StationAvailability } from '../models/stations.model';
 
 /**
  * WebSocket Events emitted by the server
@@ -20,6 +19,16 @@ export interface SlotUpdate {
   reservedFrom: Date;
   reservedTo: Date;
   action: 'created' | 'cancelled' | 'expired';
+}
+
+export interface StationAvailability {
+  stationId: string;
+  total: number;
+  available: number;
+  occupied: number;
+  offline: number;
+  maintenance: number;
+  updatedAt: Date;
 }
 
 /**

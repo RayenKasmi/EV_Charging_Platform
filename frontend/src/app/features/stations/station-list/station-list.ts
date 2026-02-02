@@ -10,6 +10,7 @@ import {
   StationQuery,
 } from '@core/models/stations.model';
 import { StationsService } from '@core/services/stations.service';
+import { AuthService } from '@core/services/auth.service';
 
 @Component({
   selector: 'app-station-list',
@@ -20,10 +21,14 @@ import { StationsService } from '@core/services/stations.service';
 })
 export class StationList {
   private stationsService = inject(StationsService);
+  private authService = inject(AuthService);
   private fb = inject(FormBuilder);
 
   readonly stationStatuses = STATION_STATUSES;
   readonly chargerTypes = CHARGER_TYPES;
+  readonly userRole = computed(() => this.authService.userRole());
+  readonly userId = computed(() => this.authService.currentUser()?.id ?? null);
+  readonly canCreate = computed(() => ['ADMIN', 'OPERATOR'].includes(this.userRole() ?? ''));
 
   private readonly mutationLoading = signal(false);
   private readonly mutationError = signal('');
@@ -34,6 +39,7 @@ export class StationList {
     city: [''],
     status: [''],
     chargerType: [''],
+    operatorName: [''],
     latitude: [null as number | null],
     longitude: [null as number | null],
     radius: [10000 as number],
@@ -65,6 +71,7 @@ export class StationList {
       city: '',
       status: '',
       chargerType: '',
+      operatorName: '',
       latitude: null,
       longitude: null,
       radius: 10000,
@@ -129,6 +136,7 @@ export class StationList {
       city: values.city?.trim() || undefined,
       status: values.status || undefined,
       chargerType: values.chargerType || undefined,
+      operatorName: values.operatorName?.trim() || undefined,
       latitude: this.toNumberOrUndefined(values.latitude),
       longitude: this.toNumberOrUndefined(values.longitude),
       radius: this.toNumberOrUndefined(values.radius),
@@ -179,5 +187,16 @@ export class StationList {
     this.filtersForm.patchValue({ latitude: null, longitude: null });
     this.geoStatus.set('idle');
     this.geoError.set('');
+  }
+
+  canManageStation(station: { operatorId: string }): boolean {
+    const role = this.userRole();
+    if (role === 'ADMIN') {
+      return true;
+    }
+    if (role === 'OPERATOR') {
+      return station.operatorId === this.userId();
+    }
+    return false;
   }
 }

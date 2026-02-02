@@ -23,11 +23,7 @@ export const routes: Routes = [
       },
       {
         path: 'stations',
-        loadComponent: () => import('./features/stations/station-list/station-list').then(m => m.StationList)
-      },
-      {
-        path: 'stations/:id',
-        loadComponent: () => import('./features/stations/station-detail.component').then(m => m.StationDetailComponent)
+        loadChildren: () => import('./features/stations/stations.routes').then(m => m.STATION_ROUTES)
       },
       {
         path: 'reservations',
