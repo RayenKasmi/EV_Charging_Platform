@@ -1,4 +1,4 @@
-import { Component, Input, Output, EventEmitter, signal, computed, effect, ChangeDetectionStrategy, OnInit, OnDestroy, OnChanges, SimpleChanges, inject } from '@angular/core';
+import { Component, input, Output, EventEmitter, signal, computed, effect, ChangeDetectionStrategy, OnDestroy, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { Subject, takeUntil } from 'rxjs';
 import { TimeSlot, TimeRange } from '@core/models/reservation.model';
@@ -25,49 +25,56 @@ import { AuthService } from '@core/services/auth.service';
   templateUrl: './reservation-calendar-view.component.html',
   styles: []
 })
-export class ReservationCalendarViewComponent implements OnInit, OnDestroy, OnChanges {
+export class ReservationCalendarViewComponent implements OnDestroy {
   private reservationService = inject(ReservationService);
   private authService = inject(AuthService);
   private destroy$ = new Subject<void>();
 
-  @Input() stationId: string = '';
-  @Input() chargerId: string = ''; // Charger ID for WebSocket subscription and API calls
-  @Input() selectedDate: Date = new Date();
+  // Signal inputs
+  stationId = input.required<string>();
+  chargerId = input.required<string>();
+  selectedDate = input<Date>(new Date());
+
   @Output() timeRangeSelected = new EventEmitter<TimeRange>();
 
   timeSlots = signal<TimeSlot[]>([]);
   selectedRange = signal<TimeRange | null>(null);
-  isLoading = signal(false);
   
   // Get current user ID for identifying own reservations
   private currentUserId = computed(() => this.authService.currentUser()?.id || '');
+
+  // Charger slots from service - reactive to chargerId and date changes
+  chargerSlots = computed(() => this.reservationService.chargerSlots());
+  isLoading = computed(() => this.reservationService.isLoadingChargerSlots());
 
   private isDragging = false;
   private selectionStart: Date | null = null;
 
   hours = Array.from({ length: 24 }, (_, i) => i);
 
-  ngOnInit() {
-    this.generateTimeSlots();
-    this.setupWebSocketSubscription();
-  }
-
-  ngOnChanges(changes: SimpleChanges) {
-    // Reload when chargerId or selectedDate changes
-    if (changes['chargerId'] || changes['selectedDate']) {
-      if (!changes['chargerId']?.firstChange && !changes['selectedDate']?.firstChange) {
+  constructor() {
+    // Effect to load charger slots when inputs change
+    effect(() => {
+      const charger = this.chargerId();
+      const date = this.selectedDate();
+      
+      if (charger && date) {
+        const dateStr = this.formatDateForApi(date);
+        this.reservationService.loadChargerSlots(charger, dateStr);
         this.generateTimeSlots();
-        
-        // Re-setup WebSocket if chargerId changed
-        if (changes['chargerId']) {
-          const previousChargerId = changes['chargerId'].previousValue;
-          if (previousChargerId) {
-            this.reservationService.unsubscribeFromCharger(previousChargerId);
-          }
-          this.setupWebSocketSubscription();
-        }
       }
-    }
+    });
+
+    // Effect to update time slots when charger slots data changes
+    effect(() => {
+      const slotsData = this.chargerSlots();
+      if (slotsData) {
+        this.updateTimeSlotsWithChargerSlots(slotsData);
+      }
+    });
+
+    // Setup WebSocket subscription
+    this.setupWebSocketSubscription();
   }
 
   ngOnDestroy() {
@@ -75,32 +82,41 @@ export class ReservationCalendarViewComponent implements OnInit, OnDestroy, OnCh
     this.destroy$.complete();
     
     // Unsubscribe from charger when component is destroyed
-    if (this.chargerId) {
-      this.reservationService.unsubscribeFromCharger(this.chargerId);
+    const charger = this.chargerId();
+    if (charger) {
+      this.reservationService.unsubscribeFromCharger(charger);
     }
+    
+    // Clear charger slots
+    this.reservationService.clearChargerSlots();
   }
 
   /**
    * Subscribe to real-time updates for the current charger
    */
   private setupWebSocketSubscription(): void {
-    if (this.chargerId) {
-      // Subscribe to charger updates via WebSocket
-      this.reservationService.subscribeToCharger(this.chargerId);
+    // Effect to handle WebSocket subscription based on chargerId
+    effect(() => {
+      const charger = this.chargerId();
+      
+      if (charger) {
+        // Subscribe to charger updates via WebSocket
+        this.reservationService.subscribeToCharger(charger);
 
-      // Listen for slot updates and refresh the calendar
-      this.reservationService.getSlotsUpdatesForCharger(this.chargerId)
-        .pipe(takeUntil(this.destroy$))
-        .subscribe(update => {
-          console.log('[Calendar] Received slot update:', update);
-          // Regenerate time slots to reflect the update
-          this.loadReservations();
-        });
-    }
+        // Listen for slot updates and trigger resource reload
+        this.reservationService.getSlotsUpdatesForCharger(charger)
+          .pipe(takeUntil(this.destroy$))
+          .subscribe(update => {
+            console.log('[Calendar] Received slot update:', update);
+            // Reload the charger slots resource
+            this.reservationService.loadChargerSlots(charger, this.formatDateForApi(this.selectedDate()));
+          });
+      }
+    }, { allowSignalWrites: true });
   }
 
   private generateTimeSlots() {
-    const date = this.selectedDate;
+    const date = this.selectedDate();
     const slots: TimeSlot[] = [];
     const now = new Date();
 
@@ -117,110 +133,42 @@ export class ReservationCalendarViewComponent implements OnInit, OnDestroy, OnCh
     }
 
     this.timeSlots.set(slots);
-    this.loadReservations();
   }
 
   /**
-   * Load reservations from the backend API
-   * Uses chargerId to fetch slots if available, otherwise falls back to station-based filtering
+   * Update time slots with charger slots data from httpResource
    */
-  private loadReservations() {
-    // If we have a chargerId, use the charger slots API (preferred)
-    if (this.chargerId) {
-      this.loadChargerSlots();
-      return;
-    }
+  private updateTimeSlotsWithChargerSlots(response: any) {
+    if (!response || !response.reservations) return;
 
-    // Fallback: If only stationId is available, use local cache filtering
-    // (This is less reliable as it depends on data being pre-loaded)
-    const stationId = this.stationId;
-    const date = this.selectedDate;
-
-    if (!stationId) return;
-
-    this.isLoading.set(true);
-
-    this.reservationService.getReservationsByStationAndDate(stationId, date).subscribe({
-      next: (reservations) => {
-        this.updateTimeSlotsWithReservations(reservations);
-        this.isLoading.set(false);
-      },
-      error: () => {
-        this.isLoading.set(false);
-      }
-    });
-  }
-
-  /**
-   * Load charger slots from the backend API
-   * This is the primary method for fetching reservations for a specific charger
-   */
-  private loadChargerSlots() {
-    if (!this.chargerId) return;
-
-    this.isLoading.set(true);
-
-    // Format date as YYYY-MM-DD for the API
-    const dateStr = this.formatDateForApi(this.selectedDate);
-
-    this.reservationService.getChargerSlots(this.chargerId, dateStr).subscribe({
-      next: (response) => {
-        // Map API response reservations to our slot format
-        const currentUserId = this.currentUserId();
-        
-        this.timeSlots.update(slots => {
-          return slots.map(slot => {
-            // Find if this slot overlaps with any reservation
-            const reservation = response.reservations.find(r => {
-              const reservedFrom = new Date(r.reservedFrom);
-              const reservedTo = new Date(r.reservedTo);
-              return slot.time >= reservedFrom && slot.time < reservedTo;
-            });
-
-            if (reservation) {
-              // Determine if this is the current user's reservation
-              const isOwnReservation = currentUserId && reservation.userId === currentUserId;
-              return {
-                ...slot,
-                status: isOwnReservation ? 'my-reservation' as const : 'reserved' as const,
-                reservationId: reservation.id
-              };
-            }
-
-            return slot;
-          });
-        });
-
-        this.isLoading.set(false);
-      },
-      error: (error) => {
-        console.error('[Calendar] Failed to load charger slots:', error);
-        this.isLoading.set(false);
-      }
-    });
-  }
-
-  /**
-   * Update time slots with reservation data
-   */
-  private updateTimeSlotsWithReservations(reservations: { startTime: Date; endTime: Date; userId: string; id: string }[]) {
     const currentUserId = this.currentUserId();
-
+    
     this.timeSlots.update(slots => {
       return slots.map(slot => {
-        const reservation = reservations.find(r => {
-          return slot.time >= r.startTime && slot.time < r.endTime;
+        // Find if this slot overlaps with any reservation
+        const reservation = response.reservations.find((r: any) => {
+          const reservedFrom = new Date(r.reservedFrom);
+          const reservedTo = new Date(r.reservedTo);
+          return slot.time >= reservedFrom && slot.time < reservedTo;
         });
 
         if (reservation) {
+          // Determine if this is the current user's reservation
+          const isOwnReservation = currentUserId && reservation.userId === currentUserId;
           return {
             ...slot,
-            status: reservation.userId === currentUserId ? 'my-reservation' : 'reserved',
+            status: isOwnReservation ? 'my-reservation' as const : 'reserved' as const,
             reservationId: reservation.id
           };
         }
 
-        return slot;
+        // Reset to available or past
+        const now = new Date();
+        return {
+          ...slot,
+          status: slot.time < now ? 'past' as const : 'available' as const,
+          reservationId: undefined
+        };
       });
     });
   }

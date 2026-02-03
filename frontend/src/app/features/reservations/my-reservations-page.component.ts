@@ -21,9 +21,11 @@ interface CountdownTimer {
 export class MyReservationsPageComponent implements OnInit, OnDestroy {
   private reservationService = inject(ReservationService);
 
-  reservations = signal<Reservation[]>([]);
+  // Get reservations and loading state directly from service
+  reservations = this.reservationService.reservations;
+  isLoading = this.reservationService.isLoadingReservations;
+  
   selectedTab = signal<string>('upcoming');
-  isLoading = signal(false);
   errorMessage = signal<string>('');
   isCancelling = signal<string>('');
   currentTime = signal<Date>(new Date());
@@ -52,7 +54,6 @@ export class MyReservationsPageComponent implements OnInit, OnDestroy {
   });
 
   ngOnInit() {
-    this.loadReservations();
     this.startCountdownTimer();
   }
 
@@ -70,25 +71,8 @@ export class MyReservationsPageComponent implements OnInit, OnDestroy {
     this.timerSubscription?.unsubscribe();
   }
 
-  loadReservations() {
-    this.isLoading.set(true);
-    this.errorMessage.set('');
-
-    // Remove hardcoded user ID - API uses JWT token for authentication
-    this.reservationService.getReservations().subscribe({
-      next: (reservations) => {
-        this.reservations.set(reservations);
-        this.isLoading.set(false);
-      },
-      error: (error) => {
-        this.errorMessage.set(error?.error?.message || error.message || 'Failed to load reservations');
-        this.isLoading.set(false);
-      }
-    });
-  }
-
   refreshReservations() {
-    this.loadReservations();
+    this.reservationService.refreshReservations();
   }
 
   selectTab(tabId: string) {
@@ -105,7 +89,7 @@ export class MyReservationsPageComponent implements OnInit, OnDestroy {
     this.reservationService.cancelReservation(id).subscribe({
       next: () => {
         this.isCancelling.set('');
-        this.loadReservations();
+        // Reservations will automatically update via the resource
       },
       error: (error) => {
         this.isCancelling.set('');

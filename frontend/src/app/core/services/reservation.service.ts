@@ -70,13 +70,6 @@ export class ReservationService implements OnDestroy {
   // =====================================================
 
   /**
-   * Local cache of user reservations
-   * Signal provides synchronous access and automatic change detection
-   */
-  private _reservations = signal<Reservation[]>([]);
-  public readonly reservations = this._reservations.asReadonly();
-
-  /**
    * Query signal for stations resource - triggers refetch when changed
    */
   private stationsQuery = signal<StationQuery>({ page: 1, limit: 100 });
@@ -98,9 +91,50 @@ export class ReservationService implements OnDestroy {
   /**
    * Loading states - derived from resource
    */
-  private _isLoadingReservations = signal(false);
-  public readonly isLoadingReservations = this._isLoadingReservations.asReadonly();
   public readonly isLoadingStations = computed(() => this.stationsResource.isLoading());
+
+  /**
+   * User reservations resource using httpResource
+   */
+  private userReservationsResource = this.bookingsApi.userReservationsResource();
+
+  /**
+   * User reservations mapped to frontend model - computed from resource
+   */
+  public readonly reservations = computed(() => {
+    const apiReservations = this.userReservationsResource.value();
+    if (!apiReservations) return [];
+    return this.mapApiReservationsToModel(apiReservations);
+  });
+
+  /**
+   * Loading state for reservations
+   */
+  public readonly isLoadingReservations = computed(() => this.userReservationsResource.isLoading());
+
+  /**
+   * Charger slots query signals
+   */
+  private chargerIdForSlots = signal<string | null>(null);
+  private dateForSlots = signal<string | undefined>(undefined);
+
+  /**
+   * Charger slots resource using httpResource
+   */
+  private chargerSlotsResource = this.bookingsApi.chargerSlotsResource(
+    this.chargerIdForSlots,
+    this.dateForSlots
+  );
+
+  /**
+   * Current charger slots - computed from resource
+   */
+  public readonly chargerSlots = computed(() => this.chargerSlotsResource.value());
+
+  /**
+   * Loading state for charger slots
+   */
+  public readonly isLoadingChargerSlots = computed(() => this.chargerSlotsResource.isLoading());
 
   /**
    * Currently subscribed charger for WebSocket updates
@@ -115,19 +149,19 @@ export class ReservationService implements OnDestroy {
    * Filter reservations by status - computed signals auto-update
    */
   public readonly upcomingReservations = computed(() =>
-    this._reservations().filter(r => 
+    this.reservations().filter(r => 
       r.status === 'PENDING' || r.status === 'CONFIRMED'
     ).sort((a, b) => a.startTime.getTime() - b.startTime.getTime())
   );
 
   public readonly pastReservations = computed(() =>
-    this._reservations().filter(r => 
+    this.reservations().filter(r => 
       r.status === 'COMPLETED' || r.status === 'EXPIRED'
     ).sort((a, b) => b.startTime.getTime() - a.startTime.getTime())
   );
 
   public readonly cancelledReservations = computed(() =>
-    this._reservations().filter(r => r.status === 'CANCELLED')
+    this.reservations().filter(r => r.status === 'CANCELLED')
   );
 
   constructor() {
@@ -219,30 +253,36 @@ export class ReservationService implements OnDestroy {
   // =====================================================
 
   /**
-   * Get user's reservations from API
-   * Uses RxJS Observable for the HTTP request
-   * Updates Signal state on success
+   * Refresh user reservations
+   * Triggers a reload of the userReservationsResource
    */
-  getReservations(userId?: string): Observable<Reservation[]> {
-    this._isLoadingReservations.set(true);
+  refreshReservations(): void {
+    this.userReservationsResource.reload();
+  }
 
-    return this.bookingsApi.getUserReservations().pipe(
-      map(apiReservations => this.mapApiReservationsToModel(apiReservations)),
-      tap(reservations => {
-        this._reservations.set(reservations);
-        this._isLoadingReservations.set(false);
-      }),
-      catchError(error => {
-        this._isLoadingReservations.set(false);
-        return throwError(() => error);
-      })
-    );
+  /**
+   * Load charger slots for a specific date
+   * Updates the query signals which automatically triggers resource refetch
+   * 
+   * @param chargerId - The charger UUID
+   * @param date - Optional date in YYYY-MM-DD format
+   */
+  loadChargerSlots(chargerId: string, date?: string): void {
+    this.chargerIdForSlots.set(chargerId);
+    this.dateForSlots.set(date);
+  }
+
+  /**
+   * Clear charger slots
+   */
+  clearChargerSlots(): void {
+    this.chargerIdForSlots.set(null);
+    this.dateForSlots.set(undefined);
   }
 
   /**
    * Create a new reservation
-   * After success, emits WebSocket event (handled by backend)
-   * and updates local state
+   * After success, refreshes the reservations resource
    */
   createReservation(data: CreateReservationData): Observable<Reservation> {
     const request = {
@@ -253,9 +293,9 @@ export class ReservationService implements OnDestroy {
 
     return this.bookingsApi.createReservation(request).pipe(
       map(apiReservation => this.mapSingleApiReservation(apiReservation)),
-      tap(reservation => {
-        // Add to local state immediately for optimistic UI
-        this._reservations.update(reservations => [...reservations, reservation]);
+      tap(() => {
+        // Refresh reservations to get the latest data
+        this.refreshReservations();
       }),
       catchError(error => {
         console.error('[ReservationService] Failed to create reservation:', error);
@@ -266,17 +306,14 @@ export class ReservationService implements OnDestroy {
 
   /**
    * Cancel a reservation
+   * After success, refreshes the reservations resource
    */
   cancelReservation(id: string): Observable<boolean> {
     return this.bookingsApi.cancelReservation(id).pipe(
       map(() => true),
       tap(() => {
-        // Update local state
-        this._reservations.update(reservations =>
-          reservations.map(r => 
-            r.id === id ? { ...r, status: 'CANCELLED' as ReservationStatus } : r
-          )
-        );
+        // Refresh reservations to get the latest data
+        this.refreshReservations();
       }),
       catchError(error => {
         console.error('[ReservationService] Failed to cancel reservation:', error);
@@ -286,26 +323,20 @@ export class ReservationService implements OnDestroy {
   }
 
   /**
-   * Get charger slots for a specific date
-   * Returns the availability calendar data
-   */
-  getChargerSlots(chargerId: string, date?: string): Observable<ChargerSlotsResponse> {
-    return this.bookingsApi.getChargerSlots(chargerId, date);
-  }
-
-  /**
    * Get reservations for a station on a specific date
-   * Used for calendar view - filters local cache or fetches from API
+   * Returns a computed value from the reservations signal
+   * 
+   * @deprecated Use chargerSlots resource instead for calendar views
    */
-  getReservationsByStationAndDate(stationId: string, date: Date): Observable<Reservation[]> {
+  getReservationsByStationAndDate(stationId: string, date: Date): Reservation[] {
     const startOfDay = new Date(date);
     startOfDay.setHours(0, 0, 0, 0);
 
     const endOfDay = new Date(date);
     endOfDay.setHours(23, 59, 59, 999);
 
-    // Filter from local cache first
-    const filtered = this._reservations().filter(r =>
+    // Filter from reservations signal
+    return this.reservations().filter(r =>
       r.stationId === stationId &&
       r.status !== 'CANCELLED' &&
       (
@@ -314,8 +345,6 @@ export class ReservationService implements OnDestroy {
         (r.startTime < startOfDay && r.endTime > endOfDay)
       )
     );
-
-    return of(filtered);
   }
 
   // =====================================================
@@ -344,7 +373,7 @@ export class ReservationService implements OnDestroy {
     if (!station) return [];
 
     // Get conflicting reservations
-    const conflictingReservations = this._reservations().filter(r =>
+    const conflictingReservations = this.reservations().filter(r =>
       r.stationId === stationId &&
       r.status !== 'CANCELLED' &&
       r.status !== 'COMPLETED' &&
@@ -367,7 +396,7 @@ export class ReservationService implements OnDestroy {
     endTime: Date,
     excludeReservationId?: string
   ): Observable<boolean> {
-    const conflictingReservations = this._reservations().filter(r =>
+    const conflictingReservations = this.reservations().filter(r =>
       r.stationId === stationId &&
       r.status !== 'CANCELLED' &&
       r.status !== 'COMPLETED' &&
@@ -496,8 +525,12 @@ export class ReservationService implements OnDestroy {
    * Called when WebSocket update is received
    */
   private refreshReservationsForCharger(chargerId: string): void {
-    // Fetch latest reservations from server
-    this.getReservations().subscribe();
+    // Refresh the reservations resource to get latest data
+    this.refreshReservations();
+    // Also refresh charger slots if we're viewing that charger
+    if (this.chargerIdForSlots() === chargerId) {
+      this.chargerSlotsResource.reload();
+    }
   }
 
   private timeRangesOverlap(range1: TimeRange, range2: TimeRange): boolean {
