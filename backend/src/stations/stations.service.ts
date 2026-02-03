@@ -6,14 +6,20 @@ import { ChargerStatus } from './enums';
 import { UpdateStationDto } from './dtos/update-station.dto';
 import { UserRole } from '../auth/enums/user-role.enum';
 import { Prisma } from '@prisma/client';
+import { CacheService } from '../common/cache/cache.service';
 @Injectable()
 export class StationsService {
-  constructor(private readonly prisma: PrismaService) {}
+  private readonly cachePrefix = 'stations:search:';
+
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly cacheService: CacheService,
+  ) {}
 
   async create(createStationDto: CreateStationDto, operatorId: string) {
     const { chargers, ...stationData } = createStationDto;
 
-    return this.prisma.station.create({
+    const created = await this.prisma.station.create({
       data: {
         ...stationData,
         operatorId,
@@ -39,6 +45,9 @@ export class StationsService {
         }
       },
     });
+
+    await this.cacheService.deleteByPrefix(this.cachePrefix);
+    return created;
   }
 
   
@@ -55,10 +64,32 @@ export class StationsService {
       city,
     } = query;
 
+    const normalizedQuery: StationQueryDto = {
+      page,
+      limit,
+      status,
+      operatorName,
+      latitude,
+      longitude,
+      radius: latitude !== undefined && longitude !== undefined ? radius : undefined,
+      chargerType,
+      city,
+    };
+
+    const cacheKey = this.buildCacheKey(normalizedQuery);
+    const cached = await this.cacheService.get<{
+      data: any[];
+      meta: { page: number; limit: number; total: number; totalPages: number };
+    }>(cacheKey);
+
+    if (cached) {
+      return cached;
+    }
+
     const skip = (page - 1) * limit;
 
     if (latitude !== undefined && longitude !== undefined) {
-      return await this.findNearbyStations(
+      const result = await this.findNearbyStations(
         latitude,
         longitude,
         radius,
@@ -71,6 +102,9 @@ export class StationsService {
         page,
         limit,
       );
+
+      await this.cacheService.set(cacheKey, result);
+      return result;
     }
 
     // Build where clause
@@ -130,7 +164,7 @@ export class StationsService {
       this.prisma.station.count({ where }),
     ]);
 
-    return {
+    const result = {
       data: stations,
       meta: {
         page,
@@ -139,7 +173,29 @@ export class StationsService {
         totalPages: Math.ceil(total / limit),
       },
     };
+    await this.cacheService.set(cacheKey, result);
+    return result;
   }
+
+  private buildCacheKey(query: StationQueryDto): string {
+    // remove undefined or null values from query
+    const entries = Object.entries(query).filter(
+      ([, value]) => value !== undefined && value !== null && value !== '',
+    );
+    // sort entries by key to ensure consistent order
+    const normalized = entries
+      .sort(([a], [b]) => a.localeCompare(b)) // localeCompare for string comparison
+      // convert to object 
+      .reduce<Record<string, string | number | boolean>>((acc, [key, value]) => {
+        acc[key] = value as string | number | boolean;
+        return acc;
+      }, {});
+
+    // stringify it 
+    return `${this.cachePrefix}${JSON.stringify(normalized)}`;
+  }
+
+
   private async findNearbyStations(
     latitude: number,
     longitude: number,
@@ -267,7 +323,7 @@ export class StationsService {
 
     const total = Number(count);
 
-    return {
+    const result = {
       data: stationsWithDistance,
       meta: {
         page,
@@ -276,6 +332,7 @@ export class StationsService {
         totalPages: Math.ceil(total / limit),
       },
     };
+    return result;
   }
 
   async findOne(id: string) {
@@ -332,7 +389,7 @@ export class StationsService {
       throw new ForbiddenException('You do not have permission to update this station');
     }
 
-    return this.prisma.station.update({
+    const updated = await this.prisma.station.update({
       where: { id },
       data: updateStationDto,
       include: {
@@ -346,6 +403,9 @@ export class StationsService {
         }
       }
     });
+
+    await this.cacheService.deleteByPrefix(this.cachePrefix);
+    return updated;
   }
 
   async remove(id: string, userId: string, userRoles: string[]) {
@@ -364,6 +424,8 @@ export class StationsService {
         deletedAt: new Date(),
       },
     });
+
+    await this.cacheService.deleteByPrefix(this.cachePrefix);
   }
 }
 

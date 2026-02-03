@@ -10,6 +10,7 @@ import { UpdateChargerDto } from './dtos/update-charger.dto';
 import { ChargerStatus } from './enums';
 import { UserRole } from '../auth/enums/user-role.enum';
 import { EventsService } from '../events/events.service';
+import { CacheService } from '../common/cache/cache.service';
 
 
 @Injectable()
@@ -17,7 +18,10 @@ export class ChargersService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly eventsService: EventsService,
+    private readonly cacheService: CacheService,
   ) {}
+
+  private readonly cachePrefix = 'stations:search:';
 
   async isChargerIdAvailable(chargerId: string) {
     const existing = await this.prisma.charger.findUnique({
@@ -63,12 +67,14 @@ export class ChargersService {
       );
     }
 
-    return await this.prisma.charger.create({
+    const created = await this.prisma.charger.create({
       data: {
         ...createChargerDto,
         stationId,
       },
     });
+    await this.cacheService.deleteByPrefix(this.cachePrefix);
+    return created;
   }
 
   async findByStation(stationId: string) {
@@ -105,10 +111,13 @@ export class ChargersService {
       throw new ForbiddenException('You do not have permission to update this charger');
     }
 
-    return await this.prisma.charger.update({
+    const updated = await this.prisma.charger.update({
       where: { id: chargerId },
       data: updateChargerDto,
     });
+
+    await this.cacheService.deleteByPrefix(this.cachePrefix);
+    return updated;
   }
 
   async remove(
@@ -148,6 +157,8 @@ export class ChargersService {
     await this.prisma.charger.delete({
       where: { id: chargerId },
     });
+
+    await this.cacheService.deleteByPrefix(this.cachePrefix);
   }
 
   async updateStatus(chargerId: string, status: string) {
@@ -168,6 +179,8 @@ export class ChargersService {
       where: { id: chargerId },
       data: { status: status as any },
     });
+
+    await this.cacheService.deleteByPrefix(this.cachePrefix);
 
     // Emit real-time status update
     this.eventsService.emitChargerStatusUpdate({
