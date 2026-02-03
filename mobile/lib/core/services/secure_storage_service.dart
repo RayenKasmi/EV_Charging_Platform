@@ -13,6 +13,7 @@ class SecureStorageService {
   static const String _userIdKey = 'user_id';
   static const String _userEmailKey = 'user_email';
   static const String _userFullNameKey = 'user_full_name';
+  static const String _userImagePathKey = 'user_image_path';
 
   // Save tokens
   Future<void> saveTokens({
@@ -61,6 +62,16 @@ class SecureStorageService {
   // Get user full name
   Future<String?> getUserFullName() async {
     return await _secureStorage.read(key: _userFullNameKey);
+  }
+
+  // Save profile image path
+  Future<void> saveProfileImage(String path) async {
+    await _secureStorage.write(key: _userImagePathKey, value: path);
+  }
+
+  // Get profile image path
+  Future<String?> getProfileImage() async {
+    return await _secureStorage.read(key: _userImagePathKey);
   }
 
   // Check if user is authenticated

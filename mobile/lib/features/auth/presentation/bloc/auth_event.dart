@@ -38,3 +38,16 @@ class AuthLogoutRequested extends AuthEvent {
 class AuthTokenRefreshRequested extends AuthEvent {
   const AuthTokenRefreshRequested();
 }
+
+class AuthUpdateProfileRequested extends AuthEvent {
+  final String fullName;
+  final String? imagePath;
+
+  const AuthUpdateProfileRequested({
+    required this.fullName,
+    this.imagePath,
+  });
+
+  @override
+  List<Object?> get props => [fullName, imagePath];
+}
