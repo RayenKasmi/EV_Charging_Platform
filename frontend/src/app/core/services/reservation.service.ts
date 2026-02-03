@@ -4,15 +4,14 @@ import { map, tap, catchError, takeUntil } from 'rxjs/operators';
 import {
   Reservation,
   CreateReservationData,
-  Station,
-  Charger,
   TimeRange,
   ReservationStatus,
 } from '../models/reservation.model';
+import { ApiReservation, ChargerSlotsResponse } from '../models/booking-api.model';
 import { StationsService} from './stations.service';
-import { BookingsApiService, ApiReservation, ChargerSlotsResponse } from './bookings-api.service';
+import { BookingsApiService } from './bookings-api.service';
 import { WebSocketService } from './websocket.service';
-import { StationQuery, Station as ApiStation, Charger as ApiCharger, SlotUpdate } from '@core/models/stations.model';
+import { StationQuery, Station, Charger, SlotUpdate } from '@core/models/stations.model';
 
 /**
  * ReservationService
@@ -80,12 +79,12 @@ export class ReservationService implements OnDestroy {
   private stationsResource = this.stationsService.stationsResource(this.stationsQuery);
 
   /**
-   * Stations mapped to frontend model - computed from resource
+   * Stations from API - computed from resource
    */
   public readonly stations = computed(() => {
     const response = this.stationsResource.value();
     if (!response?.data) return [];
-    return this.mapApiStationsToModel(response.data as unknown as ApiStation[]);
+    return response.data as Station[];
   });
 
   /**
@@ -384,7 +383,7 @@ export class ReservationService implements OnDestroy {
     );
 
     const unavailableChargerIds = new Set(conflictingReservations.map(r => r.chargerId));
-    return station.chargers.filter(c => !unavailableChargerIds.has(c.id));
+    return station.chargers.filter((c: Charger) => !unavailableChargerIds.has(c.id));
   }
 
   /**
@@ -420,12 +419,13 @@ export class ReservationService implements OnDestroy {
     endTime: Date
   ): number {
     const station = this.getStationById(stationId);
-    const charger = station?.chargers.find(c => c.id === chargerId);
+    const charger = station?.chargers.find((c: Charger) => c.id === chargerId);
 
     if (!charger) return 0;
 
     const durationHours = (endTime.getTime() - startTime.getTime()) / (1000 * 60 * 60);
-    return Math.round(durationHours * charger.hourlyRate * 100) / 100;
+    const rate = charger.currentRate || charger.powerKW * 0.35; // Default rate based on power
+    return Math.round(durationHours * rate * 100) / 100;
   }
 
   // =====================================================
@@ -475,40 +475,6 @@ export class ReservationService implements OnDestroy {
       'EXPIRED': 'EXPIRED',
     };
     return statusMap[status] || 'PENDING';
-  }
-
-  /**
-   * Map API station response to frontend model
-   */
-  private mapApiStationsToModel(apiStations: ApiStation[]): Station[] {
-    return apiStations.map(s => this.mapSingleApiStation(s));
-  }
-
-  private mapSingleApiStation(s: ApiStation): Station {
-    return {
-      id: s.id,
-      name: s.name,
-      location: s.address,
-      address: s.address,
-      city: s.city,
-      latitude: s.latitude,
-      longitude: s.longitude,
-      status: s.status,
-      operatorId: s.operatorId,
-      chargers: s.chargers.map(c => this.mapApiCharger(c)),
-    };
-  }
-
-  private mapApiCharger(c: ApiCharger): Charger {
-    return {
-      id: c.id,
-      chargerId: c.chargerId,
-      type: this.stationsService.mapChargerType(c.type),
-      connectorType: this.stationsService.mapConnectorType(c.connectorType),
-      powerOutput: c.powerKW,
-      hourlyRate: c.currentRate || c.powerKW * 0.35, // Default rate based on power
-      status: this.stationsService.mapChargerStatus(c.status),
-    };
   }
 
   /**

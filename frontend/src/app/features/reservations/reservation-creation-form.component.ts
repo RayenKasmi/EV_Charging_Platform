@@ -2,7 +2,8 @@ import { Component, input, effect, Output, EventEmitter, signal, computed, injec
 import { CommonModule } from '@angular/common';
 import { FormBuilder, FormGroup, Validators, ReactiveFormsModule, AbstractControl, ValidationErrors } from '@angular/forms';
 import { ReservationService } from '@core/services/reservation.service';
-import { Station, Charger, CreateReservationData, TimeRange } from '@core/models/reservation.model';
+import { CreateReservationData, TimeRange } from '@core/models/reservation.model';
+import { Station, Charger } from '@core/models/stations.model';
 import { Observable, of, map, catchError, debounceTime, switchMap } from 'rxjs';
 
 @Component({
@@ -31,13 +32,14 @@ export class ReservationCreationFormComponent implements OnInit {
   
   // Computed signals for display - now properly reactive
   selectedStation = computed(() => this.stations().find(s => s.id === this.stationId()));
-  selectedCharger = computed(() => this.selectedStation()?.chargers.find(c => c.id === this.chargerId()));
+  selectedCharger = computed(() => this.selectedStation()?.chargers.find((c: Charger) => c.id === this.chargerId()));
   
   selectedStationName = computed(() => this.selectedStation()?.name || 'No station selected');
   selectedChargerInfo = computed(() => {
     const charger = this.selectedCharger();
     if (!charger) return 'No charger selected';
-    return `${charger.type} - ${charger.powerOutput}kW (${this.formatCurrency(charger.hourlyRate || 0)}/hr)`;
+    const rate = charger.currentRate || charger.powerKW * 0.35;
+    return `${charger.type} - ${charger.powerKW}kW (${this.formatCurrency(rate)}/hr)`;
   });
   formattedDate = computed(() => {
     const date = this.selectedDate();

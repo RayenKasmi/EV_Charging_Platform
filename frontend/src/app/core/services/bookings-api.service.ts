@@ -3,54 +3,11 @@ import { HttpClient, httpResource, HttpResourceRef } from '@angular/common/http'
 import { Observable } from 'rxjs';
 import { map } from 'rxjs/operators';
 import { environment } from '@env/environment';
-
-/**
- * API Reservation interface matching backend response
- */
-export interface ApiReservation {
-  id: string;
-  userId: string;
-  chargerId: string;
-  status: 'PENDING' | 'CONFIRMED' | 'CANCELLED' | 'EXPIRED';
-  reservedFrom: string;
-  reservedTo: string;
-  createdAt: string;
-  updatedAt: string;
-  charger: {
-    id: string;
-    chargerId: string;
-    type: string;
-    connectorType: string;
-    powerKW: number;
-    currentRate: number | null;
-    station: {
-      id: string;
-      name: string;
-      address: string;
-      city: string;
-    };
-  };
-}
-
-export interface ChargerSlotsResponse {
-  chargerId: string;
-  stationId: string;
-  chargerStatus: string;
-  date: string;
-  reservations: {
-    id: string;
-    userId: string;
-    reservedFrom: string;
-    reservedTo: string;
-    status: string;
-  }[];
-}
-
-export interface CreateReservationRequest {
-  chargerId: string;
-  reservedFrom: string; // ISO date string
-  reservedTo: string;   // ISO date string
-}
+import {
+  ApiReservation,
+  ChargerSlotsResponse,
+  CreateReservationRequest,
+} from '@core/models/booking-api.model';
 
 /**
  * BookingsApiService
