@@ -3,7 +3,8 @@ import { CommonModule } from '@angular/common';
 import { ReservationCalendarViewComponent } from './reservation-calendar-view.component';
 import { ReservationCreationFormComponent } from './reservation-creation-form.component';
 import { MyReservationsPageComponent } from './my-reservations-page.component';
-import { TimeRange, Station, Charger } from '@core/models/reservation.model';
+import { TimeRange } from '@core/models/reservation.model';
+import { Station, Charger } from '@core/models/stations.model';
 import { ReservationService } from '@core/services/reservation.service';
 
 type ViewMode = 'my-reservations' | 'new-reservation';

@@ -76,7 +76,7 @@
                   <option value="" disabled>Select a charger</option>
                   @for (charger of chargers(); track charger.id) {
                     <option [value]="charger.id">
-                      {{ charger.type }} ({{ charger.powerOutput }}kW) - {{ charger.status || 'Unknown' }}
+                      {{ charger.type }} ({{ charger.powerKW }}kW) - {{ charger.status || 'Unknown' }}
                     </option>
                   }
                 </select>

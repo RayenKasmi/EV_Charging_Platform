@@ -1,5 +1,14 @@
+/**
+ * Reservation domain models
+ * 
+ * This file contains models specific to the reservation/booking domain.
+ */
+
 export type ReservationStatus = 'PENDING' | 'CONFIRMED' | 'ACTIVE' | 'COMPLETED' | 'CANCELLED' | 'EXPIRED';
 
+/**
+ * Reservation entity - domain model for client-side use
+ */
 export interface Reservation {
   id: string;
   userId: string;
@@ -13,29 +22,6 @@ export interface Reservation {
   chargerType?: string;
   connectorType?: string;
   createdAt: Date;
-}
-
-export interface Charger {
-  id: string;
-  chargerId?: string; // Physical charger ID
-  type: string;
-  connectorType?: string;
-  powerOutput: number;
-  hourlyRate: number;
-  status?: 'Available' | 'In Use' | 'Offline' | 'Maintenance';
-}
-
-export interface Station {
-  id: string;
-  name: string;
-  location: string;
-  address?: string;
-  city?: string;
-  chargers: Charger[];
-  latitude?: number;
-  longitude?: number;
-  status?: string;
-  operatorId?: string;
 }
 
 export interface CreateReservationData {
