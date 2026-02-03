@@ -10,6 +10,7 @@ import '../../../auth/presentation/bloc/auth_state.dart';
 import '../../../auth/presentation/bloc/auth_event.dart';
 import '../../../settings/presentation/screens/settings_screen.dart';
 import 'edit_profile_screen.dart';
+import 'my_vehicles_screen.dart';
 
 class ProfileScreen extends StatefulWidget {
   const ProfileScreen({Key? key}) : super(key: key);
@@ -191,7 +192,12 @@ class _ProfileScreenState extends State<ProfileScreen> {
             leading: const Icon(Icons.directions_car),
             title: const Text("My Vehicles"),
             trailing: const Icon(Icons.arrow_forward_ios, size: 14),
-            onTap: () {},
+            onTap: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(builder: (_) => const MyVehiclesScreen()),
+              );
+            },
           ),
         ],
       )
