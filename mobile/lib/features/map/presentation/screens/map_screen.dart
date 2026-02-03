@@ -92,65 +92,70 @@ class _MapScreenState extends State<MapScreen> {
     // Since I'm creating a standalone feature, I'll provide it locally for this screen.
     return BlocProvider(
       create: (context) => MapBloc(MockStationRepository())..add(LoadMapStations()),
-      child: Scaffold(
-        body: Stack(
-          children: [
-            BlocBuilder<MapBloc, MapState>(
-              builder: (context, state) {
-                Set<Marker> markers = {};
-                if (state is MapLoaded) {
-                  markers = _createMarkers(state.filteredStations);
-                }
+      child: Builder(
+        builder: (context) {
+          return Scaffold(
+            body: Stack(
+              children: [
+                BlocBuilder<MapBloc, MapState>(
+                  builder: (context, state) {
+                    Set<Marker> markers = {};
+                    if (state is MapLoaded) {
+                      markers = _createMarkers(state.filteredStations);
+                    }
 
-                return GoogleMap(
-                  mapType: MapType.normal,
-                  initialCameraPosition: _kDefaultCenter,
-                  markers: markers,
-                  onMapCreated: (GoogleMapController controller) {
-                    _controller.complete(controller);
+                    return GoogleMap(
+                      mapType: MapType.normal,
+                      initialCameraPosition: _kDefaultCenter,
+                      markers: markers,
+                      onMapCreated: (GoogleMapController controller) {
+                        _controller.complete(controller);
+                      },
+                      myLocationEnabled: true,
+                      myLocationButtonEnabled: true,
+                    );
                   },
-                  myLocationEnabled: true,
-                  myLocationButtonEnabled: true,
-                );
-              },
-            ),
-            
-            // Search / Filter Bar
-            Positioned(
-              top: 50,
-              left: 15,
-              right: 15,
-              child: Card(
-                elevation: 4,
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
-                child: Padding(
-                   padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
-                   child: Row(
-                     children: [
-                       const Icon(Icons.search, color: Colors.grey),
-                       const SizedBox(width: 10),
-                       Expanded(
-                         child: TextField(
-                           decoration: InputDecoration(
-                             border: InputBorder.none,
-                             hintText: 'Search chargers...',
-                           ),
-                         ),
-                       ),
-                       IconButton(
-                         icon: const Icon(Icons.tune),
-                         onPressed: () {
-                           // Open Filter Dialog
-                         },
-                       )
-                     ],
-                   ),
                 ),
-              ),
-            ),
-
-            // Draggable Scrollable Sheet for Station List
-            DraggableScrollableSheet(
+                
+                // Search / Filter Bar
+                Positioned(
+                  top: 50,
+                  left: 15,
+                  right: 15,
+                  child: Card(
+                    elevation: 4,
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                    child: Padding(
+                       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+                       child: Row(
+                         children: [
+                           const Icon(Icons.search, color: Colors.grey),
+                           const SizedBox(width: 10),
+                           Expanded(
+                             child: TextField(
+                               onChanged: (value) {
+                                  context.read<MapBloc>().add(FilterMapStations(query: value));
+                               },
+                               decoration: const InputDecoration(
+                                 border: InputBorder.none,
+                                 hintText: 'Search chargers...',
+                               ),
+                             ),
+                           ),
+                           IconButton(
+                             icon: const Icon(Icons.tune),
+                             onPressed: () {
+                               // Open Filter Dialog
+                             },
+                           )
+                         ],
+                       ),
+                    ),
+                  ),
+                ),
+                
+                // Draggable Scrollable Sheet for Station List
+                DraggableScrollableSheet(
               initialChildSize: 0.1,
               minChildSize: 0.1,
               maxChildSize: 0.6,
@@ -213,7 +218,8 @@ class _MapScreenState extends State<MapScreen> {
             ),
           ],
         ),
-      ),
+      );
+    }),
     );
   }
 

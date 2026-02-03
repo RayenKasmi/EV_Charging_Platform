@@ -36,10 +36,21 @@ class MapBloc extends Bloc<MapEvent, MapState> {
         bool matchesType = event.connectorType == null ||
             station.connectorTypes.contains(event.connectorType);
         bool matchesStatus = event.status == null || station.status == event.status;
-        return matchesType && matchesStatus;
+        
+        bool matchesQuery = true;
+        if (event.query != null && event.query!.isNotEmpty) {
+           final q = event.query!.toLowerCase();
+           matchesQuery = station.name.toLowerCase().contains(q) || 
+                          station.address.toLowerCase().contains(q);
+        }
+
+        return matchesType && matchesStatus && matchesQuery;
       }).toList();
 
-      emit(MapLoaded(stations: currentState.stations, filteredStations: filtered));
+      emit(MapLoaded(
+        stations: currentState.stations, 
+        filteredStations: filtered
+      ));
     }
   }
 
