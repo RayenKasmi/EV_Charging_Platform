@@ -47,7 +47,7 @@ export class StationsService {
       page = 1,
       limit = 10,
       status,
-      operatorId,
+      operatorName,
       latitude,
       longitude,
       radius = 10000,
@@ -64,7 +64,7 @@ export class StationsService {
         radius,
         {
           status,
-          operatorId,
+          operatorName,
           chargerType,
           city,
         },
@@ -82,8 +82,14 @@ export class StationsService {
       where.status = status;
     }
 
-    if (operatorId) {
-      where.operatorId = operatorId;
+
+    if (operatorName) {
+      where.operator = {
+        fullName: {
+          contains: operatorName,
+          mode: 'insensitive',
+        },
+      };
     }
 
     if (city) {
@@ -140,7 +146,7 @@ export class StationsService {
     radiusMeters: number,
     filters: {
       status?: string;
-      operatorId?: string;
+      operatorName?: string;
       chargerType?: string;
       city?: string; 
     },
@@ -160,9 +166,12 @@ export class StationsService {
       paramIndex++;
     }
 
-    if (filters.operatorId) {
-      conditions.push(`s."operatorId" = $${paramIndex}`);
-      params.push(filters.operatorId);
+
+    let operatorJoin = '';
+    if (filters.operatorName) {
+      operatorJoin = 'INNER JOIN "User" u ON u.id = s."operatorId"';
+      conditions.push(`u."fullName" ILIKE $${paramIndex}`);
+      params.push(`%${filters.operatorName}%`);
       paramIndex++;
     }
 
@@ -194,6 +203,7 @@ export class StationsService {
           ST_SetSRID(ST_MakePoint($1, $2), 4326)::geography
         ) as distance
       FROM "Station" s
+      ${operatorJoin}
       ${chargerJoin}
       WHERE 
         ${whereClause}
@@ -213,6 +223,7 @@ export class StationsService {
       `
       SELECT COUNT(DISTINCT s.id) as count
       FROM "Station" s
+      ${operatorJoin}
       ${chargerJoin}
       WHERE 
         ${whereClause}
@@ -306,7 +317,7 @@ export class StationsService {
       ).length,
       maintenance:station.chargers.filter(
         (c) => c.status === 'MAINTENANCE',
-      )
+      ).length
     };
   }
 

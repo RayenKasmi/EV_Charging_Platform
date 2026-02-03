@@ -45,7 +45,7 @@ export class Login {
       },
       error: (error) => {
         this.isLoading.set(false);
-        this.errorMessage.set(error.message || 'Invalid credentials. Please try again.');
+        this.errorMessage.set(error.error?.message || 'Invalid credentials. Please try again.');
       }
     });
   }

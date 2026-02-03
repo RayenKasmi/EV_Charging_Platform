@@ -10,12 +10,20 @@ import { PaymentsModule } from './payments/payments.module';
 import { PrismaService } from './prisma/prisma.service';
 import { PrismaModule } from './prisma/prisma.module';
 import { LoggerMiddleware } from './common/middleware/logger.middleware';
+import { EventsModule } from './events/events.module';
 
 @Module({
-  imports: [AuthModule, UsersModule, StationsModule, BookingsModule, PaymentsModule, PrismaModule,
+  imports: [
     ConfigModule.forRoot({
       isGlobal: true,
     }),
+    EventsModule,
+    AuthModule,
+    UsersModule,
+    StationsModule,
+    BookingsModule,
+    PaymentsModule,
+    PrismaModule,
   ],
   controllers: [AppController],
   providers: [AppService, PrismaService],

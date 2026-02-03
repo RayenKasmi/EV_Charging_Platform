@@ -23,7 +23,7 @@ export class StationQueryDto {
 
   @IsOptional()
   @IsString()
-  operatorId?: string;
+  operatorName?: string;
 
   @IsOptional()
   @Type(() => Number)

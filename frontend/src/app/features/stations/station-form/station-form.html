@@ -1,0 +1,239 @@
+<div class="space-y-6">
+  <div class="flex items-center justify-between">
+    <div>
+      <h1 class="text-2xl font-semibold text-gray-900 dark:text-slate-100">
+        @if (isEditMode()) {
+          Edit Station
+        } @else {
+          New Station
+        }
+      </h1>
+      <p class="text-sm text-gray-500 dark:text-slate-400">Configure station details and chargers.</p>
+    </div>
+    <a routerLink="/stations" class="text-sm font-medium text-gray-600 hover:text-gray-800 dark:text-slate-300 dark:hover:text-slate-100">Back to list</a>
+  </div>
+
+  @if (errorMessage()) {
+    <div class="rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700 dark:border-red-500/40 dark:bg-red-500/10 dark:text-red-200">
+      {{ errorMessage() }}
+    </div>
+  }
+
+  <form [formGroup]="form" (ngSubmit)="submit()" class="space-y-6">
+    <div class="rounded-xl border border-gray-200 bg-white p-6 shadow-sm dark:border-slate-700 dark:bg-slate-900">
+      <h2 class="text-lg font-semibold text-gray-900 dark:text-slate-100">Station information</h2>
+      <div class="mt-4 grid gap-4 md:grid-cols-2">
+        <div>
+          <label class="text-xs font-medium text-gray-500 dark:text-slate-400">Name</label>
+          <input
+            formControlName="name"
+            type="text"
+            class="mt-2 w-full rounded-lg border border-gray-200 px-3 py-2 text-sm focus:border-blue-500 focus:outline-none dark:border-slate-700 dark:bg-slate-900 dark:text-slate-100"
+            placeholder="Downtown Hub"
+          />
+          @if (showError(form.controls.name)) {
+            <p class="mt-1 text-xs text-red-600 dark:text-red-300">Name is required (3–20 chars).</p>
+          }
+        </div>
+        <div>
+          <label class="text-xs font-medium text-gray-500 dark:text-slate-400">City</label>
+          <input
+            formControlName="city"
+            type="text"
+            class="mt-2 w-full rounded-lg border border-gray-200 px-3 py-2 text-sm focus:border-blue-500 focus:outline-none dark:border-slate-700 dark:bg-slate-900 dark:text-slate-100"
+            placeholder="San Francisco"
+          />
+          @if (showError(form.controls.city)) {
+            <p class="mt-1 text-xs text-red-600 dark:text-red-300">City is required (max 50 chars).</p>
+          }
+        </div>
+        <div class="md:col-span-2">
+          <label class="text-xs font-medium text-gray-500 dark:text-slate-400">Address</label>
+          <input
+            formControlName="address"
+            type="text"
+            class="mt-2 w-full rounded-lg border border-gray-200 px-3 py-2 text-sm focus:border-blue-500 focus:outline-none dark:border-slate-700 dark:bg-slate-900 dark:text-slate-100"
+            placeholder="123 Market Street"
+          />
+          @if (showError(form.controls.address)) {
+            <p class="mt-1 text-xs text-red-600 dark:text-red-300">Address is required.</p>
+          }
+        </div>
+        <div>
+          <label class="text-xs font-medium text-gray-500 dark:text-slate-400">Latitude</label>
+          <input
+            formControlName="latitude"
+            type="number"
+            step="0.000001"
+            class="mt-2 w-full rounded-lg border border-gray-200 px-3 py-2 text-sm focus:border-blue-500 focus:outline-none dark:border-slate-700 dark:bg-slate-900 dark:text-slate-100"
+          />
+          @if (showError(form.controls.latitude)) {
+            <p class="mt-1 text-xs text-red-600 dark:text-red-300">Latitude must be between -90 and 90.</p>
+          }
+        </div>
+        <div>
+          <label class="text-xs font-medium text-gray-500 dark:text-slate-400">Longitude</label>
+          <input
+            formControlName="longitude"
+            type="number"
+            step="0.000001"
+            class="mt-2 w-full rounded-lg border border-gray-200 px-3 py-2 text-sm focus:border-blue-500 focus:outline-none dark:border-slate-700 dark:bg-slate-900 dark:text-slate-100"
+          />
+          @if (showError(form.controls.longitude)) {
+            <p class="mt-1 text-xs text-red-600 dark:text-red-300">Longitude must be between -180 and 180.</p>
+          }
+        </div>
+        <div>
+          <label class="text-xs font-medium text-gray-500 dark:text-slate-400">Status</label>
+          <select
+            formControlName="status"
+            class="mt-2 w-full rounded-lg border border-gray-200 px-3 py-2 text-sm focus:border-blue-500 focus:outline-none dark:border-slate-700 dark:bg-slate-900 dark:text-slate-100"
+          >
+            @for (status of stationStatuses; track status) {
+              <option [value]="status">{{ status }}</option>
+            }
+          </select>
+        </div>
+        <div>
+          <label class="text-xs font-medium text-gray-500 dark:text-slate-400">Active</label>
+          <select
+            formControlName="isActive"
+            class="mt-2 w-full rounded-lg border border-gray-200 px-3 py-2 text-sm focus:border-blue-500 focus:outline-none dark:border-slate-700 dark:bg-slate-900 dark:text-slate-100"
+          >
+            <option [ngValue]="true">Yes</option>
+            <option [ngValue]="false">No</option>
+          </select>
+        </div>
+      </div>
+    </div>
+
+    @if (!isEditMode()) {
+      <div class="rounded-xl border border-gray-200 bg-white p-6 shadow-sm dark:border-slate-700 dark:bg-slate-900">
+        <div class="flex items-center justify-between">
+          <h2 class="text-lg font-semibold text-gray-900 dark:text-slate-100">Chargers</h2>
+          <button
+            type="button"
+            (click)="addCharger()"
+            class="rounded-lg border border-gray-200 px-3 py-1.5 text-xs font-medium text-gray-700 hover:bg-gray-50 dark:border-slate-700 dark:text-slate-200 dark:hover:bg-slate-800"
+          >
+            + Add charger
+          </button>
+        </div>
+
+        @if (chargers.errors?.['duplicateChargerId'] && (chargers.touched || submitted())) {
+          <p class="mt-3 text-xs text-red-600 dark:text-red-300">Charger IDs must be unique.</p>
+        }
+
+        <div class="mt-4 space-y-4" formArrayName="chargers">
+          @for (charger of chargers.controls; track charger; let i = $index) {
+            <div class="rounded-lg border border-gray-100 bg-gray-50 p-4 dark:border-slate-700 dark:bg-slate-950" [formGroupName]="i">
+              <div class="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
+                <div>
+                  <label class="text-xs font-medium text-gray-500 dark:text-slate-400">Charger ID</label>
+                  <input
+                    formControlName="chargerId"
+                    type="text"
+                    class="mt-2 w-full rounded-lg border border-gray-200 px-3 py-2 text-sm focus:border-blue-500 focus:outline-none dark:border-slate-700 dark:bg-slate-900 dark:text-slate-100"
+                    placeholder="EV-001"
+                  />
+                  @if (showError(charger.get('chargerId'))) {
+                    @if (charger.get('chargerId')?.errors?.['chargerIdTaken']) {
+                      <p class="mt-1 text-xs text-red-600 dark:text-red-300">Charger ID is already in use.</p>
+                    } @else {
+                      <p class="mt-1 text-xs text-red-600 dark:text-red-300">Use 3–30 chars (letters, numbers, _ or -).</p>
+                    }
+                  }
+                </div>
+                <div>
+                  <label class="text-xs font-medium text-gray-500 dark:text-slate-400">Type</label>
+                  <select
+                    formControlName="type"
+                    class="mt-2 w-full rounded-lg border border-gray-200 px-3 py-2 text-sm focus:border-blue-500 focus:outline-none dark:border-slate-700 dark:bg-slate-900 dark:text-slate-100"
+                  >
+                    @for (type of chargerTypes; track type) {
+                      <option [value]="type">{{ type }}</option>
+                    }
+                  </select>
+                </div>
+                <div>
+                  <label class="text-xs font-medium text-gray-500 dark:text-slate-400">Connector</label>
+                  <select
+                    formControlName="connectorType"
+                    class="mt-2 w-full rounded-lg border border-gray-200 px-3 py-2 text-sm focus:border-blue-500 focus:outline-none dark:border-slate-700 dark:bg-slate-900 dark:text-slate-100"
+                  >
+                    @for (connector of connectorTypes; track connector) {
+                      <option [value]="connector">{{ connector }}</option>
+                    }
+                  </select>
+                </div>
+                <div>
+                  <label class="text-xs font-medium text-gray-500 dark:text-slate-400">Power (kW)</label>
+                  <input
+                    formControlName="powerKW"
+                    type="number"
+                    min="1"
+                    class="mt-2 w-full rounded-lg border border-gray-200 px-3 py-2 text-sm focus:border-blue-500 focus:outline-none dark:border-slate-700 dark:bg-slate-900 dark:text-slate-100"
+                  />
+                  @if (showError(charger.get('powerKW'))) {
+                    <p class="mt-1 text-xs text-red-600 dark:text-red-300">Power must be at least 1 kW.</p>
+                  }
+                </div>
+                <div>
+                  <label class="text-xs font-medium text-gray-500 dark:text-slate-400">Rate (per kWh)</label>
+                  <input
+                    formControlName="currentRate"
+                    type="number"
+                    min="0"
+                    class="mt-2 w-full rounded-lg border border-gray-200 px-3 py-2 text-sm focus:border-blue-500 focus:outline-none dark:border-slate-700 dark:bg-slate-900 dark:text-slate-100"
+                  />
+                  @if (showError(charger.get('currentRate'))) {
+                    <p class="mt-1 text-xs text-red-600 dark:text-red-300">Rate must be 0 or higher.</p>
+                  }
+                </div>
+                <div>
+                  <label class="text-xs font-medium text-gray-500 dark:text-slate-400">Status</label>
+                  <select
+                    formControlName="status"
+                    class="mt-2 w-full rounded-lg border border-gray-200 px-3 py-2 text-sm focus:border-blue-500 focus:outline-none dark:border-slate-700 dark:bg-slate-900 dark:text-slate-100"
+                  >
+                    @for (status of chargerStatuses; track status) {
+                      <option [value]="status">{{ status }}</option>
+                    }
+                  </select>
+                </div>
+              </div>
+
+              <div class="mt-4 flex justify-end">
+                <button
+                  type="button"
+                  (click)="removeCharger(i)"
+                  [disabled]="chargers.length === 1"
+                  class="text-xs font-medium text-red-600 disabled:text-gray-400 dark:disabled:text-slate-500"
+                >
+                  Remove charger
+                </button>
+              </div>
+            </div>
+          }
+        </div>
+      </div>
+    }
+
+    <div class="flex items-center justify-end gap-3">
+      <a routerLink="/stations" class="rounded-lg border border-gray-200 px-4 py-2 text-sm font-medium text-gray-600 hover:bg-gray-50 dark:border-slate-700 dark:text-slate-200 dark:hover:bg-slate-800">
+        Cancel
+      </a>
+      <button
+        type="submit"
+        [disabled]="loading()"
+        class="rounded-lg bg-blue-600 px-5 py-2 text-sm font-medium text-white hover:bg-blue-700 disabled:cursor-not-allowed disabled:bg-blue-400"
+      >
+        @if (loading()) {
+          Saving...
+        } @else {
+          Save station
+        }
+      </button>
+    </div>
+  </form>
+</div>

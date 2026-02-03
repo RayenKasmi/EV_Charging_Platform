@@ -58,7 +58,7 @@ export class Register {
       },
       error: (error) => {
         this.isLoading.set(false);
-        this.errorMessage.set(error.message || 'Registration failed. Please try again.');
+        this.errorMessage.set(error.error?.message || 'Registration failed. Please try again.');
       }
     });
   }
