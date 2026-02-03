@@ -1,5 +1,5 @@
 import { CommonModule } from '@angular/common';
-import { Component, computed, inject, signal } from '@angular/core';
+import { ChangeDetectionStrategy, Component, computed, inject, signal } from '@angular/core';
 import { FormBuilder, ReactiveFormsModule } from '@angular/forms';
 import { RouterLink } from '@angular/router';
 import { toSignal } from '@angular/core/rxjs-interop';
@@ -18,6 +18,8 @@ import { AuthService } from '@core/services/auth.service';
   imports: [CommonModule, ReactiveFormsModule, RouterLink],
   templateUrl: './station-list.html',
   styleUrl: './station-list.scss',
+  changeDetection: ChangeDetectionStrategy.OnPush,  
+  // CD only on input reference changes, observable/signal updates, event inside the component, or manual call to markForCheck()
 })
 export class StationList {
   private stationsService = inject(StationsService);
