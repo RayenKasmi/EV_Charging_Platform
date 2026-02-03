@@ -23,7 +23,8 @@ export const routes: Routes = [
       },
       {
         path: 'stations',
-        loadChildren: () => import('./features/stations/stations.routes').then(m => m.STATION_ROUTES)
+        loadChildren: () => import('./features/stations/stations.routes').then(m => m.STATION_ROUTES),
+        data: { preload: true }
       },
       {
         path: 'reservations',
