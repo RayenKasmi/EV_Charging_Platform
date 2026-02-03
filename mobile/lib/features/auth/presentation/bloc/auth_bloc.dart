@@ -14,6 +14,7 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
     on<AuthRegisterRequested>(_onAuthRegisterRequested);
     on<AuthLogoutRequested>(_onAuthLogoutRequested);
     on<AuthTokenRefreshRequested>(_onAuthTokenRefreshRequested);
+    on<AuthUpdateProfileRequested>(_onAuthUpdateProfileRequested);
   }
 
   Future<void> _onAuthCheckRequested(
@@ -96,6 +97,28 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
         emit(const AuthUnauthenticated());
       },
       (response) => emit(AuthAuthenticated(response.user)),
+    );
+  }
+
+  Future<void> _onAuthUpdateProfileRequested(
+    AuthUpdateProfileRequested event,
+    Emitter<AuthState> emit,
+  ) async {
+    // Current state should be authenticated to update profile
+    if (state is! AuthAuthenticated) return;
+    
+    // We can emit loading, but that might flicker the whole screen. 
+    // Usually better to have a specific status, but let's just do optimistic update or loading.
+    // emit(const AuthLoading()); 
+
+    final result = await _authRepository.updateProfile(
+      fullName: event.fullName,
+      imagePath: event.imagePath,
+    );
+
+    result.fold(
+      (failure) => emit(AuthError(failure.message)),
+      (updatedUser) => emit(AuthAuthenticated(updatedUser)),
     );
   }
 }

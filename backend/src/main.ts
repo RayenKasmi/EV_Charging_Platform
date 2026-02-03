@@ -15,9 +15,22 @@ async function bootstrap() {
 
   app.useGlobalFilters(new AllExceptionsFilter());
 
+  // Enable CORS for development - allows Angular frontend, Flutter Web, and Flutter Mobile
   app.enableCors({
-    origin: ['http://localhost:4200','http://localhost:4300'], // Angular dev
+    origin: (origin, callback) => {
+      // Allow requests with no origin (like mobile apps or curl requests)
+      if (!origin) return callback(null, true);
+      
+      // Allow localhost and 10.0.2.2 (Android emulator) on any port for development
+      if (origin.match(/^http:\/\/(localhost|127\.0\.0\.1|10\.0\.2\.2)(:\d+)?$/)) {
+        return callback(null, true);
+      }
+      
+      // Reject other origins
+      callback(new Error('Not allowed by CORS'));
+    },
     methods: 'GET,HEAD,PUT,PATCH,POST,DELETE,OPTIONS',
+
     allowedHeaders: 'Content-Type, Authorization',
     credentials: true,
   });
