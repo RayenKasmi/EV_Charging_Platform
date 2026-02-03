@@ -1,18 +1,55 @@
+import 'dart:io';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:random_avatar/random_avatar.dart';
 import '../../../../core/injection.dart';
+import '../../../../core/services/secure_storage_service.dart';
 import '../../../auth/presentation/bloc/auth_bloc.dart';
 import '../../../auth/presentation/bloc/auth_state.dart';
 import '../../../auth/presentation/bloc/auth_event.dart';
 import '../../../settings/presentation/screens/settings_screen.dart';
+import 'edit_profile_screen.dart';
 
-class ProfileScreen extends StatelessWidget {
+class ProfileScreen extends StatefulWidget {
   const ProfileScreen({Key? key}) : super(key: key);
 
   @override
+  State<ProfileScreen> createState() => _ProfileScreenState();
+}
+
+class _ProfileScreenState extends State<ProfileScreen> {
+  String? _localImagePath;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadProfileImage();
+  }
+
+  Future<void> _loadProfileImage() async {
+    // We need to access getIt<SecureStorageService>() but it's not directly exposed in main. 
+    // Usually we use Bloc to get data, but image path is local-only for now (not in User model).
+    // So let's use the service directly.
+    final storage = getIt<SecureStorageService>();
+    final path = await storage.getProfileImage();
+    if (mounted) {
+      setState(() {
+        _localImagePath = path;
+      });
+    }
+  }
+
+  @override
   Widget build(BuildContext context) {
-    return BlocBuilder<AuthBloc, AuthState>(
+    return BlocListener<AuthBloc, AuthState>(
+      listener: (context, state) {
+        if (state is AuthAuthenticated) {
+           // Reload image when auth state changes (e.g. after update)
+           _loadProfileImage();
+        }
+      },
+      child: BlocBuilder<AuthBloc, AuthState>(
       builder: (context, state) {
         if (state is! AuthAuthenticated) {
            return const Center(child: Text("Not Authenticated"));
@@ -43,11 +80,25 @@ class ProfileScreen extends StatelessWidget {
                 // Avatar
                  Hero(
                    tag: 'profile_avatar',
-                   child: RandomAvatar(
-                      user.email,
-                      height: 100, 
+                   child: Container(
                       width: 100,
-                    ),
+                      height: 100,
+                      decoration: BoxDecoration(
+                        shape: BoxShape.circle,
+                        border: Border.all(color: Theme.of(context).colorScheme.primary, width: 2),
+                      ),
+                      child: ClipOval(
+                        child: _localImagePath != null
+                            ? (kIsWeb 
+                                ? Image.network(_localImagePath!, fit: BoxFit.cover)
+                                : Image.file(File(_localImagePath!), fit: BoxFit.cover))
+                            : RandomAvatar(
+                                user.email,
+                                height: 100, 
+                                width: 100,
+                              ),
+                      ),
+                   ),
                  ),
                 const SizedBox(height: 16),
                 
@@ -60,8 +111,26 @@ class ProfileScreen extends StatelessWidget {
                   user.email, 
                   style: Theme.of(context).textTheme.bodyMedium?.copyWith(color: Colors.grey),
                 ),
+
+                const SizedBox(height: 16),
+                OutlinedButton.icon(
+                  onPressed: () {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(builder: (_) => const EditProfileScreen()),
+                    );
+                  },
+                  icon: const Icon(Icons.edit, size: 16),
+                  label: const Text("Edit Profile"),
+                  style: OutlinedButton.styleFrom(
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(20),
+                    ),
+                    padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 8),
+                  ),
+                ),
                 
-                const SizedBox(height: 40),
+                const SizedBox(height: 30),
 
                 // Stats Cards
                 const Row(
@@ -97,7 +166,7 @@ class ProfileScreen extends StatelessWidget {
           ),
         );
       },
-    );
+    ));
   }
 
   Widget _buildProfileMenu(BuildContext context) {

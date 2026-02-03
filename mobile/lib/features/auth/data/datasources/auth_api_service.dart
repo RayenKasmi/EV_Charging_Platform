@@ -24,4 +24,7 @@ abstract class AuthApiService {
 
   @POST('/logout')
   Future<void> logout();
+
+  @PUT('/profile')
+  Future<AuthResponseModel> updateProfile(@Body() Map<String, dynamic> body);
 }

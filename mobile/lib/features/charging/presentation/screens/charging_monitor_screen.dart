@@ -29,13 +29,11 @@ class _ChargingViewState extends State<ChargingView> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Colors.grey[100],
       appBar: AppBar(
         title: const Text('Charging Session'),
         centerTitle: true,
         backgroundColor: Colors.transparent,
         elevation: 0,
-        foregroundColor: Colors.black,
       ),
       body: BlocBuilder<ChargingBloc, ChargingState>(
         builder: (context, state) {
@@ -55,30 +53,31 @@ class _ChargingViewState extends State<ChargingView> {
   }
 
   Widget _buildStartScreen(BuildContext context) {
+    final theme = Theme.of(context);
     return Padding(
       padding: const EdgeInsets.all(24.0),
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          Icon(Icons.ev_station, size: 80, color: Colors.green[700]),
+          Icon(Icons.ev_station, size: 80, color: theme.colorScheme.primary),
           const SizedBox(height: 20),
           const Text(
             "Ready to Charge?",
             style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
           ),
           const SizedBox(height: 10),
-          const Text(
+          Text(
             "Scan the QR code on the charger or enter the ID manually.",
             textAlign: TextAlign.center,
-            style: TextStyle(color: Colors.grey),
+            style: TextStyle(color: theme.colorScheme.onSurfaceVariant),
           ),
           const SizedBox(height: 40),
           ElevatedButton.icon(
             icon: const Icon(Icons.qr_code_scanner),
             label: const Text("Scan QR Code"),
             style: ElevatedButton.styleFrom(
-              backgroundColor: Colors.green[700],
-              foregroundColor: Colors.white,
+              backgroundColor: theme.colorScheme.primary,
+              foregroundColor: theme.colorScheme.onPrimary,
               minimumSize: const Size(double.infinity, 50),
             ),
             onPressed: () {
@@ -92,8 +91,7 @@ class _ChargingViewState extends State<ChargingView> {
               minimumSize: const Size(double.infinity, 50),
             ),
             onPressed: () {
-              // Trigger simulation
-              context.read<ChargingBloc>().add(const StartChargingSession(chargerId: "MANUAL_123"));
+              _showManualIdDialog(context);
             },
           )
         ],
@@ -101,7 +99,44 @@ class _ChargingViewState extends State<ChargingView> {
     );
   }
 
+  void _showManualIdDialog(BuildContext context) {
+    final TextEditingController controller = TextEditingController();
+    showDialog(
+      context: context,
+      builder: (dialogContext) {
+        return AlertDialog(
+          title: const Text("Enter Manual ID"),
+          content: TextField(
+            controller: controller,
+            decoration: const InputDecoration(
+              hintText: "Enter Charger ID",
+              labelText: "Charger ID"
+            ),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(dialogContext),
+              child: const Text("Cancel"),
+            ),
+            ElevatedButton(
+              onPressed: () {
+                if (controller.text.isNotEmpty) {
+                  Navigator.pop(dialogContext);
+                  context.read<ChargingBloc>().add(StartChargingSession(chargerId: controller.text));
+                }
+              },
+              child: const Text("Start"),
+            ),
+          ],
+        );
+      },
+    );
+  }
+
   void _showQRScanner(BuildContext context) {
+    // Capture the bloc to ensure we use the correct one
+    final chargingBloc = context.read<ChargingBloc>();
+    
     Navigator.of(context).push(MaterialPageRoute(
       builder: (ctx) => Scaffold(
         appBar: AppBar(title: const Text("Scan QR")),
@@ -112,7 +147,7 @@ class _ChargingViewState extends State<ChargingView> {
               if (barcode.rawValue != null) {
                 // Found a code
                 Navigator.pop(ctx);
-                context.read<ChargingBloc>().add(StartChargingSession(chargerId: barcode.rawValue!));
+                chargingBloc.add(StartChargingSession(chargerId: barcode.rawValue!));
                 break;
               }
             }
@@ -123,14 +158,15 @@ class _ChargingViewState extends State<ChargingView> {
   }
 
   Widget _buildDashboard(BuildContext context, ChargingSession session) {
+    final theme = Theme.of(context);
     return SingleChildScrollView(
       padding: const EdgeInsets.all(20),
       child: Column(
         children: [
           Text(session.stationName, style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w500)),
-          Text("Session ID: ${session.sessionId}", style: const TextStyle(fontSize: 12, color: Colors.grey)),
+          Text("Session ID: ${session.sessionId}", style: TextStyle(fontSize: 12, color: theme.colorScheme.onSurfaceVariant)),
           const SizedBox(height: 30),
-          _buildGauge(session.soc),
+          _buildGauge(context, session.soc),
           const SizedBox(height: 40),
           _buildMetricsGrid(session),
           const SizedBox(height: 40),
@@ -139,8 +175,8 @@ class _ChargingViewState extends State<ChargingView> {
                context.read<ChargingBloc>().add(StopChargingSession());
             }, 
             style: ElevatedButton.styleFrom(
-              backgroundColor: Colors.red[100],
-              foregroundColor: Colors.red[900],
+              backgroundColor: theme.colorScheme.errorContainer,
+              foregroundColor: theme.colorScheme.onErrorContainer,
               minimumSize: const Size(double.infinity, 50),
               elevation: 0,
             ),
@@ -151,7 +187,8 @@ class _ChargingViewState extends State<ChargingView> {
     );
   }
 
-  Widget _buildGauge(int soc) {
+  Widget _buildGauge(BuildContext context, int soc) {
+    final theme = Theme.of(context);
     return Stack(
       alignment: Alignment.center,
       children: [
@@ -161,15 +198,15 @@ class _ChargingViewState extends State<ChargingView> {
           child: CircularProgressIndicator(
             value: soc / 100,
             strokeWidth: 20,
-            backgroundColor: Colors.grey[300],
-            valueColor: AlwaysStoppedAnimation<Color>(Colors.green[600]!),
+            backgroundColor: theme.colorScheme.surfaceVariant,
+            valueColor: AlwaysStoppedAnimation<Color>(theme.colorScheme.primary),
           ),
         ),
         Column(
           mainAxisSize: MainAxisSize.min,
           children: [
             Text("$soc%", style: const TextStyle(fontSize: 48, fontWeight: FontWeight.bold)),
-            const Text("SoC", style: TextStyle(color: Colors.grey)),
+             Text("SoC", style: TextStyle(color: theme.colorScheme.onSurfaceVariant)),
           ],
         )
       ],
@@ -216,11 +253,12 @@ class _ChargingViewState extends State<ChargingView> {
   }
 
   Widget _buildSummary(BuildContext context, ChargingSession session) {
+    final theme = Theme.of(context);
      return Center(
        child: Column(
          mainAxisAlignment: MainAxisAlignment.center,
          children: [
-           const Icon(Icons.check_circle, size: 80, color: Colors.green),
+           Icon(Icons.check_circle, size: 80, color: theme.colorScheme.primary),
            const SizedBox(height: 20),
            const Text("Charging Complete", style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold)),
            const SizedBox(height: 20),
@@ -255,28 +293,29 @@ class _MetricCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
     return Container(
       padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: theme.colorScheme.surface,
         borderRadius: BorderRadius.circular(15),
-        boxShadow: [
+        boxShadow: theme.brightness == Brightness.light ? [
           BoxShadow(
-            color: Colors.green.withOpacity(0.05),
+            color: theme.colorScheme.primary.withOpacity(0.1),
             offset: const Offset(0, 4),
             blurRadius: 10,
           )
-        ],
-        border: isHighLight ? Border.all(color: Colors.green, width: 2) : null,
+        ] : null,
+        border: isHighLight ? Border.all(color: theme.colorScheme.primary, width: 2) : Border.all(color: theme.colorScheme.outlineVariant),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          Icon(icon, color: isHighLight ? Colors.green[700] : Colors.grey[400]),
+          Icon(icon, color: isHighLight ? theme.colorScheme.primary : theme.colorScheme.onSurfaceVariant),
           const SizedBox(height: 8),
-          Text(value, style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: isHighLight ? Colors.green[800] : Colors.black87)),
-          Text(label, style: TextStyle(fontSize: 12, color: Colors.grey[600])),
+          Text(value, style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: isHighLight ? theme.colorScheme.primary : theme.colorScheme.onSurface)),
+          Text(label, style: TextStyle(fontSize: 12, color: theme.colorScheme.onSurfaceVariant)),
         ],
       ),
     );
