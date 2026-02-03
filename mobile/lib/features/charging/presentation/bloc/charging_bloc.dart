@@ -62,7 +62,7 @@ class ChargingBloc extends Bloc<ChargingEvent, ChargingState> {
       isCharging: true,
     );
 
-    _simulationTimer = Timer.periodic(const Duration(seconds: 1), (timer) {
+    _simulationTimer = Timer.periodic(const Duration(milliseconds: 1820), (timer) {
       if (validSession.soc >= 100) {
         add(StopChargingSession());
         return;
