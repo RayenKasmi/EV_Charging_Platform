@@ -1,7 +1,7 @@
 import { Component, signal, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
-import { Router, RouterLink } from '@angular/router';
+import { Router, RouterLink, ActivatedRoute } from '@angular/router';
 import { AuthService } from '../../../core/services/auth.service';
 import { LoginRequest } from '../../../core/models/auth.model';
 
@@ -15,11 +15,19 @@ import { LoginRequest } from '../../../core/models/auth.model';
 export class Login {
   private authService = inject(AuthService);
   private router = inject(Router);
+  private route = inject(ActivatedRoute);
 
   email = '';
   password = '';
   isLoading = signal(false);
   errorMessage = signal('');
+
+  constructor() {
+    const guardError = this.route.snapshot.queryParamMap.get('error');
+    if (guardError) {
+      this.errorMessage.set(guardError);
+    }
+  }
 
   onSubmit(): void {
     this.errorMessage.set('');
@@ -52,7 +60,6 @@ export class Login {
 
   private getReturnUrl(): string {
     // Get return URL from query params or default to dashboard
-    const urlParams = new URLSearchParams(window.location.search);
-    return urlParams.get('returnUrl') || '/dashboard';
+    return this.route.snapshot.queryParamMap.get('returnUrl') || '/dashboard';
   }
 }

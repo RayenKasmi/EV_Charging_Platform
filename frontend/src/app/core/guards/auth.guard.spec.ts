@@ -44,7 +44,10 @@ describe('Auth Guards', () => {
 
       expect(result).toBe(false);
       expect(router.navigate).toHaveBeenCalledWith(['/auth/login'], {
-        queryParams: { returnUrl: '/protected' }
+        queryParams: {
+          returnUrl: '/protected',
+          error: 'Please sign in to continue.'
+        }
       });
     });
   });
@@ -69,7 +72,9 @@ describe('Auth Guards', () => {
       );
 
       expect(result).toBe(false);
-      expect(router.navigate).toHaveBeenCalledWith(['/dashboard']);
+      expect(router.navigate).toHaveBeenCalledWith(['/dashboard'], {
+        queryParams: { error: "You're already signed in." }
+      });
     });
   });
 
@@ -97,7 +102,9 @@ describe('Auth Guards', () => {
       );
 
       expect(result).toBe(false);
-      expect(router.navigate).toHaveBeenCalledWith(['/dashboard']);
+      expect(router.navigate).toHaveBeenCalledWith(['/dashboard'], {
+        queryParams: { error: 'You do not have permission to access this page.' }
+      });
     });
 
     it('should redirect to login when user is not authenticated', () => {
@@ -110,7 +117,10 @@ describe('Auth Guards', () => {
 
       expect(result).toBe(false);
       expect(router.navigate).toHaveBeenCalledWith(['/auth/login'], {
-        queryParams: { returnUrl: '/admin' }
+        queryParams: {
+          returnUrl: '/admin',
+          error: 'Please sign in to continue.'
+        }
       });
     });
   });

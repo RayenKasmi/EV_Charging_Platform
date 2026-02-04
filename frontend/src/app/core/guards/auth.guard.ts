@@ -15,7 +15,10 @@ export const authGuard: CanActivateFn = (route, state) => {
 
   // Redirect to login with return URL
   router.navigate(['/auth/login'], {
-    queryParams: { returnUrl: state.url }
+    queryParams: {
+      returnUrl: state.url,
+      error: 'Please sign in to continue.'
+    }
   });
   
   return false;
@@ -33,7 +36,9 @@ export const guestGuard: CanActivateFn = (route, state) => {
   }
 
   // Redirect authenticated users to dashboard
-  router.navigate(['/dashboard']);
+  router.navigate(['/dashboard'], {
+    queryParams: { error: "You're already signed in." }
+  });
   return false;
 };
 
@@ -47,7 +52,10 @@ export const roleGuard = (allowedRoles: string[]): CanActivateFn => {
 
     if (!authService.isAuthenticated()) {
       router.navigate(['/auth/login'], {
-        queryParams: { returnUrl: state.url }
+        queryParams: {
+          returnUrl: state.url,
+          error: 'Please sign in to continue.'
+        }
       });
       return false;
     }
@@ -58,7 +66,9 @@ export const roleGuard = (allowedRoles: string[]): CanActivateFn => {
     }
 
     // User doesn't have required role
-    router.navigate(['/dashboard']);
+    router.navigate(['/dashboard'], {
+      queryParams: { error: 'You do not have permission to access this page.' }
+    });
     return false;
   };
 };
