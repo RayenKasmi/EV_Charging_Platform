@@ -59,12 +59,13 @@ export class ReservationCreationFormComponent implements OnInit, OnDestroy {
   isSubmitting = signal(false);
   errorMessage = signal<string>('');
 
-  constructor() {}
+  constructor() {
+    this.setupEffects();
+  }
 
   ngOnInit() {
     this.initForm();
     this.setupFormListeners();
-    this.setupEffects();
   }
 
   ngOnDestroy() {
