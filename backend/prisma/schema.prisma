@@ -148,6 +148,7 @@ model Charger {
   @@index([stationId])
   @@index([status])
   @@index([chargerId])
+  @@index([stationId, type])
 }
 
 /* =======================
