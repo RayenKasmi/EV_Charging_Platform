@@ -1,5 +1,7 @@
 import { inject } from '@angular/core';
 import { Router, CanActivateFn } from '@angular/router';
+import { of } from 'rxjs';
+import { catchError, map, switchMap } from 'rxjs/operators';
 import { AuthService } from '../services/auth.service';
 
 /**
@@ -13,15 +15,18 @@ export const authGuard: CanActivateFn = (route, state) => {
     return true;
   }
 
-  // Redirect to login with return URL
-  router.navigate(['/auth/login'], {
-    queryParams: {
-      returnUrl: state.url,
-      error: 'Please sign in to continue.'
-    }
-  });
-  
-  return false;
+  return authService.refreshToken().pipe(
+    map(() => true),
+    catchError(() => {
+      router.navigate(['/auth/login'], {
+        queryParams: {
+          returnUrl: state.url,
+          error: 'Please sign in to continue.'
+        }
+      });
+      return of(false);
+    })
+  );
 };
 
 /**
@@ -51,13 +56,28 @@ export const roleGuard = (allowedRoles: string[]): CanActivateFn => {
     const router = inject(Router);
 
     if (!authService.isAuthenticated()) {
-      router.navigate(['/auth/login'], {
-        queryParams: {
-          returnUrl: state.url,
-          error: 'Please sign in to continue.'
-        }
-      });
-      return false;
+      return authService.refreshToken().pipe(
+        switchMap(() => {
+          const userRole = authService.userRole();
+          if (userRole && allowedRoles.includes(userRole)) {
+            return of(true);
+          }
+
+          router.navigate(['/dashboard'], {
+            queryParams: { error: 'You do not have permission to access this page.' }
+          });
+          return of(false);
+        }),
+        catchError(() => {
+          router.navigate(['/auth/login'], {
+            queryParams: {
+              returnUrl: state.url,
+              error: 'Please sign in to continue.'
+            }
+          });
+          return of(false);
+        })
+      );
     }
 
     const userRole = authService.userRole();
