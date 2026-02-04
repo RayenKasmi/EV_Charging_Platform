@@ -6,7 +6,7 @@ import {
   CreateReservationData,
   TimeRange,
   ReservationStatus,
-} from '../models/reservation.model';
+} from '@core/models/reservation.model';
 import { ApiReservation, ChargerSlotsResponse } from '../models/booking-api.model';
 import { StationsService} from './stations.service';
 import { BookingsApiService } from './bookings-api.service';

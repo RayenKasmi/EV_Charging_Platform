@@ -1,6 +1,7 @@
 import { Component, input, Output, EventEmitter, signal, computed, effect, ChangeDetectionStrategy, OnDestroy, inject } from '@angular/core';
+import { toObservable } from '@angular/core/rxjs-interop';
 import { CommonModule } from '@angular/common';
-import { Subject, takeUntil } from 'rxjs';
+import { Subject, takeUntil, distinctUntilChanged, filter, switchMap, tap, finalize, EMPTY } from 'rxjs';
 import { TimeSlot, TimeRange } from '@core/models/reservation.model';
 import { ReservationService } from '@core/services/reservation.service';
 import { AuthService } from '@core/services/auth.service';
@@ -95,24 +96,28 @@ export class ReservationCalendarViewComponent implements OnDestroy {
    * Subscribe to real-time updates for the current charger
    */
   private setupWebSocketSubscription(): void {
-    // Effect to handle WebSocket subscription based on chargerId
-    effect(() => {
-      const charger = this.chargerId();
-      
-      if (charger) {
-        // Subscribe to charger updates via WebSocket
-        this.reservationService.subscribeToCharger(charger);
+    // Subscribe to WebSocket updates based on chargerId without writing to signals inside effects
+    toObservable(this.chargerId)
+      .pipe(
+        distinctUntilChanged(),
+        filter((charger): charger is string => Boolean(charger)), //skips empty/undefined chargers
+        switchMap(charger => {   //cancels previous streams (getslotupdatesforcharger)
+          this.reservationService.subscribeToCharger(charger);
 
-        // Listen for slot updates and trigger resource reload
-        this.reservationService.getSlotsUpdatesForCharger(charger)
-          .pipe(takeUntil(this.destroy$))
-          .subscribe(update => {
-            console.log('[Calendar] Received slot update:', update);
-            // Reload the charger slots resource
-            this.reservationService.loadChargerSlots(charger, this.formatDateForApi(this.selectedDate()));
-          });
-      }
-    }, { allowSignalWrites: true });
+          return this.reservationService.getSlotsUpdatesForCharger(charger).pipe( 
+            tap(update => {
+              console.log('[Calendar] Received slot update:', update);
+              this.reservationService.loadChargerSlots(
+                charger,
+                this.formatDateForApi(this.selectedDate())
+              );
+            }),
+            finalize(() => this.reservationService.unsubscribeFromCharger(charger)) //runs when the stream completes or is canceled
+          );
+        }),
+        takeUntil(this.destroy$)
+      )
+      .subscribe();
   }
 
   private generateTimeSlots() {
