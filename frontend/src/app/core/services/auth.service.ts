@@ -1,6 +1,6 @@
 import { Injectable, signal, computed, inject } from '@angular/core';
 import { HttpClient, HttpErrorResponse } from '@angular/common/http';
-import { Observable, BehaviorSubject, throwError, timer } from 'rxjs';
+import { Observable, BehaviorSubject, throwError, timer, EMPTY } from 'rxjs';
 import { tap, catchError, switchMap, shareReplay } from 'rxjs/operators';
 import { Router } from '@angular/router';
 import {
@@ -70,13 +70,18 @@ export class AuthService {
     const refreshToken = this.getRefreshToken();
     if (refreshToken) {
       this.http.post(`${this.apiUrl}/logout`, { refreshToken })
-        .pipe(catchError(() => [])) // Ignore errors during logout
+        .pipe(catchError(() => EMPTY)) // Ignore errors during logout
         .subscribe();
     }
 
     // Clear all local storage
     this.clearAuthData();
     
+    // Reset refresh flow
+    this.refreshTokenInProgress = false;
+    this.refreshTokenSubject.complete();
+    this.refreshTokenSubject = new BehaviorSubject<string | null>(null);
+
     // Update signals
     this.currentUserSignal.set(null);
     this.authStateSignal.set(false);

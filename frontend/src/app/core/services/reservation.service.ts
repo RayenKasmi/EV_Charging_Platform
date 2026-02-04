@@ -1,12 +1,12 @@
 import { Injectable, inject, signal, computed, OnDestroy, effect } from '@angular/core';
 import { Observable, of, throwError, Subject } from 'rxjs';
-import { map, tap, catchError, takeUntil } from 'rxjs/operators';
+import { map, tap, catchError, takeUntil, auditTime, filter } from 'rxjs/operators';
 import {
   Reservation,
   CreateReservationData,
   TimeRange,
   ReservationStatus,
-} from '../models/reservation.model';
+} from '@core/models/reservation.model';
 import { ApiReservation, ChargerSlotsResponse } from '../models/booking-api.model';
 import { StationsService} from './stations.service';
 import { BookingsApiService } from './bookings-api.service';
@@ -178,15 +178,14 @@ export class ReservationService implements OnDestroy {
   private setupWebSocketListeners(): void {
     // Listen for slot updates (reservation created/cancelled)
     this.wsService.slotsUpdate$
-      .pipe(takeUntil(this.destroy$))
+      .pipe(
+        filter((update: SlotUpdate) => this._subscribedChargerId() === update.chargerId),
+        auditTime(300),
+        takeUntil(this.destroy$)
+      )
       .subscribe((update: SlotUpdate) => {
         console.log('[ReservationService] Received slot update:', update);
-        
-        // Refresh reservations when a slot update is received
-        // This ensures we have the latest data from the server
-        if (this._subscribedChargerId() === update.chargerId) {
-          this.refreshReservationsForCharger(update.chargerId);
-        }
+        this.refreshReservationsForCharger(update);
       });
 
     // Listen for charger status updates
@@ -490,11 +489,28 @@ export class ReservationService implements OnDestroy {
    * Refresh reservations for a specific charger
    * Called when WebSocket update is received
    */
-  private refreshReservationsForCharger(chargerId: string): void {
+  private refreshReservationsForCharger(update: SlotUpdate): void {
+    const dateStr = this.dateForSlots();
+
+    if (dateStr) {
+      const selectedStart = new Date(`${dateStr}T00:00:00`);
+      const selectedEnd = new Date(`${dateStr}T23:59:59.999`);
+      const updateStart = new Date(update.reservedFrom);
+      const updateEnd = new Date(update.reservedTo);
+
+      const overlapsSelectedDate =
+        updateStart < selectedEnd && updateEnd > selectedStart;
+
+      if (!overlapsSelectedDate) {
+        return;
+      }
+    }
+
     // Refresh the reservations resource to get latest data
     this.refreshReservations();
+
     // Also refresh charger slots if we're viewing that charger
-    if (this.chargerIdForSlots() === chargerId) {
+    if (this.chargerIdForSlots() === update.chargerId) {
       this.chargerSlotsResource.reload();
     }
   }

@@ -4,13 +4,6 @@ import { Reservation, ReservationStatus } from '@core/models/reservation.model';
 import { ReservationService } from '@core/services/reservation.service';
 import { interval, Subscription } from 'rxjs';
 
-interface CountdownTimer {
-  days: number;
-  hours: number;
-  minutes: number;
-  seconds: number;
-}
-
 @Component({
   selector: 'app-my-reservations-page',
   standalone: true,
