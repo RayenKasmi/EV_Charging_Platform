@@ -74,13 +74,12 @@ class AuthRepository {
     try {
       final refreshToken = await _storageService.getRefreshToken();
       
-      if (refreshToken == null) {
-        return Left(CacheFailure(message: 'No refresh token found'));
+      final body = <String, dynamic>{};
+      if (refreshToken != null && refreshToken.isNotEmpty) {
+        body['refreshToken'] = refreshToken;
       }
 
-      final response = await _apiService.refreshToken({
-        'refreshToken': refreshToken,
-      });
+      final response = await _apiService.refreshToken(body);
 
       // Update tokens
       await _storageService.saveTokens(

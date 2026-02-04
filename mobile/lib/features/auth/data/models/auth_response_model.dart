@@ -8,7 +8,7 @@ part 'auth_response_model.g.dart';
 class AuthResponseModel with _$AuthResponseModel {
   const factory AuthResponseModel({
     required String accessToken,
-    required String refreshToken,
+    String? refreshToken,
     required UserModel user,
   }) = _AuthResponseModel;
 

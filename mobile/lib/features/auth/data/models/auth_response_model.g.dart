@@ -10,7 +10,7 @@ _$AuthResponseModelImpl _$$AuthResponseModelImplFromJson(
         Map<String, dynamic> json) =>
     _$AuthResponseModelImpl(
       accessToken: json['accessToken'] as String,
-      refreshToken: json['refreshToken'] as String,
+      refreshToken: json['refreshToken'] as String?,
       user: UserModel.fromJson(json['user'] as Map<String, dynamic>),
     );
 

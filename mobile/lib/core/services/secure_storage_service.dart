@@ -18,12 +18,19 @@ class SecureStorageService {
   // Save tokens
   Future<void> saveTokens({
     required String accessToken,
-    required String refreshToken,
+    String? refreshToken,
   }) async {
-    await Future.wait([
+    final writes = <Future<void>>[
       _secureStorage.write(key: _accessTokenKey, value: accessToken),
-      _secureStorage.write(key: _refreshTokenKey, value: refreshToken),
-    ]);
+    ];
+
+    if (refreshToken != null && refreshToken.isNotEmpty) {
+      writes.add(
+        _secureStorage.write(key: _refreshTokenKey, value: refreshToken),
+      );
+    }
+
+    await Future.wait(writes);
   }
 
   // Get access token

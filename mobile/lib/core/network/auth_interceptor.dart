@@ -43,20 +43,25 @@ class AuthInterceptor extends Interceptor {
         // Try to refresh the token
         final refreshToken = await _storageService.getRefreshToken();
 
-        if (refreshToken != null) {
-          final response = await _dio.post(
-            'http://10.0.2.2:3000/auth/refresh',
-            data: {'refreshToken': refreshToken},
-          );
+        final data = <String, dynamic>{};
+        if (refreshToken != null && refreshToken.isNotEmpty) {
+          data['refreshToken'] = refreshToken;
+        }
 
-          if (response.statusCode == 200) {
-            final newAccessToken = response.data['accessToken'];
-            final newRefreshToken = response.data['refreshToken'];
+        final response = await _dio.post(
+          'http://10.0.2.2:3000/auth/refresh',
+          data: data,
+        );
 
-            // Save new tokens
+        if (response.statusCode == 200) {
+          final newAccessToken = response.data['accessToken'];
+          final newRefreshToken = response.data['refreshToken'];
+
+          if (newAccessToken is String && newAccessToken.isNotEmpty) {
+            // Save new tokens (refresh token may come from cookie only)
             await _storageService.saveTokens(
               accessToken: newAccessToken,
-              refreshToken: newRefreshToken,
+              refreshToken: newRefreshToken is String ? newRefreshToken : null,
             );
 
             // Retry the original request with new token

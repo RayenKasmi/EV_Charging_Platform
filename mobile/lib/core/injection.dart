@@ -1,5 +1,7 @@
 import 'package:dio/dio.dart';
 import 'package:flutter/foundation.dart' show kIsWeb;
+import 'package:cookie_jar/cookie_jar.dart';
+import 'package:dio_cookie_manager/dio_cookie_manager.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:get_it/get_it.dart';
 import 'package:injectable/injectable.dart';
@@ -33,6 +35,9 @@ String get _baseUrl {
 @module
 abstract class RegisterModule {
   @singleton
+  CookieJar get cookieJar => CookieJar();
+
+  @singleton
   FlutterSecureStorage get secureStorage => const FlutterSecureStorage(
         aOptions: AndroidOptions(
           encryptedSharedPreferences: true,
@@ -53,6 +58,7 @@ abstract class RegisterModule {
       ),
     );
 
+    dio.interceptors.add(CookieManager(getIt<CookieJar>()));
     dio.interceptors.add(
       PrettyDioLogger(
         requestHeader: true,
@@ -80,6 +86,7 @@ abstract class RegisterModule {
       ),
     );
 
+    dio.interceptors.add(CookieManager(getIt<CookieJar>()));
     dio.interceptors.add(
       PrettyDioLogger(
         requestHeader: true,

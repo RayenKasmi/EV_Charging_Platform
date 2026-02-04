@@ -8,6 +8,7 @@
 // coverage:ignore-file
 
 // ignore_for_file: no_leading_underscores_for_library_prefixes
+import 'package:cookie_jar/cookie_jar.dart' as _i557;
 import 'package:dio/dio.dart' as _i361;
 import 'package:flutter_secure_storage/flutter_secure_storage.dart' as _i558;
 import 'package:get_it/get_it.dart' as _i174;
@@ -39,6 +40,7 @@ extension GetItInjectableX on _i174.GetIt {
       environmentFilter,
     );
     final registerModule = _$RegisterModule();
+    gh.singleton<_i557.CookieJar>(() => registerModule.cookieJar);
     gh.singleton<_i558.FlutterSecureStorage>(
         () => registerModule.secureStorage);
     gh.singleton<_i246.ThemeCubit>(() => _i246.ThemeCubit());

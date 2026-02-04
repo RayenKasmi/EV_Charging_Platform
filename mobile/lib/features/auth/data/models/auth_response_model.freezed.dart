@@ -21,7 +21,7 @@ AuthResponseModel _$AuthResponseModelFromJson(Map<String, dynamic> json) {
 /// @nodoc
 mixin _$AuthResponseModel {
   String get accessToken => throw _privateConstructorUsedError;
-  String get refreshToken => throw _privateConstructorUsedError;
+  String? get refreshToken => throw _privateConstructorUsedError;
   UserModel get user => throw _privateConstructorUsedError;
 
   Map<String, dynamic> toJson() => throw _privateConstructorUsedError;
@@ -36,7 +36,7 @@ abstract class $AuthResponseModelCopyWith<$Res> {
           AuthResponseModel value, $Res Function(AuthResponseModel) then) =
       _$AuthResponseModelCopyWithImpl<$Res, AuthResponseModel>;
   @useResult
-  $Res call({String accessToken, String refreshToken, UserModel user});
+  $Res call({String accessToken, String? refreshToken, UserModel user});
 
   $UserModelCopyWith<$Res> get user;
 }
@@ -55,7 +55,7 @@ class _$AuthResponseModelCopyWithImpl<$Res, $Val extends AuthResponseModel>
   @override
   $Res call({
     Object? accessToken = null,
-    Object? refreshToken = null,
+    Object? refreshToken = freezed,
     Object? user = null,
   }) {
     return _then(_value.copyWith(
@@ -63,10 +63,10 @@ class _$AuthResponseModelCopyWithImpl<$Res, $Val extends AuthResponseModel>
           ? _value.accessToken
           : accessToken // ignore: cast_nullable_to_non_nullable
               as String,
-      refreshToken: null == refreshToken
+      refreshToken: freezed == refreshToken
           ? _value.refreshToken
           : refreshToken // ignore: cast_nullable_to_non_nullable
-              as String,
+              as String?,
       user: null == user
           ? _value.user
           : user // ignore: cast_nullable_to_non_nullable
@@ -91,7 +91,7 @@ abstract class _$$AuthResponseModelImplCopyWith<$Res>
       __$$AuthResponseModelImplCopyWithImpl<$Res>;
   @override
   @useResult
-  $Res call({String accessToken, String refreshToken, UserModel user});
+  $Res call({String accessToken, String? refreshToken, UserModel user});
 
   @override
   $UserModelCopyWith<$Res> get user;
@@ -109,7 +109,7 @@ class __$$AuthResponseModelImplCopyWithImpl<$Res>
   @override
   $Res call({
     Object? accessToken = null,
-    Object? refreshToken = null,
+    Object? refreshToken = freezed,
     Object? user = null,
   }) {
     return _then(_$AuthResponseModelImpl(
@@ -117,10 +117,10 @@ class __$$AuthResponseModelImplCopyWithImpl<$Res>
           ? _value.accessToken
           : accessToken // ignore: cast_nullable_to_non_nullable
               as String,
-      refreshToken: null == refreshToken
+      refreshToken: freezed == refreshToken
           ? _value.refreshToken
           : refreshToken // ignore: cast_nullable_to_non_nullable
-              as String,
+              as String?,
       user: null == user
           ? _value.user
           : user // ignore: cast_nullable_to_non_nullable
@@ -133,9 +133,7 @@ class __$$AuthResponseModelImplCopyWithImpl<$Res>
 @JsonSerializable()
 class _$AuthResponseModelImpl implements _AuthResponseModel {
   const _$AuthResponseModelImpl(
-      {required this.accessToken,
-      required this.refreshToken,
-      required this.user});
+      {required this.accessToken, this.refreshToken, required this.user});
 
   factory _$AuthResponseModelImpl.fromJson(Map<String, dynamic> json) =>
       _$$AuthResponseModelImplFromJson(json);
@@ -143,7 +141,7 @@ class _$AuthResponseModelImpl implements _AuthResponseModel {
   @override
   final String accessToken;
   @override
-  final String refreshToken;
+  final String? refreshToken;
   @override
   final UserModel user;
 
@@ -186,7 +184,7 @@ class _$AuthResponseModelImpl implements _AuthResponseModel {
 abstract class _AuthResponseModel implements AuthResponseModel {
   const factory _AuthResponseModel(
       {required final String accessToken,
-      required final String refreshToken,
+      final String? refreshToken,
       required final UserModel user}) = _$AuthResponseModelImpl;
 
   factory _AuthResponseModel.fromJson(Map<String, dynamic> json) =
@@ -195,7 +193,7 @@ abstract class _AuthResponseModel implements AuthResponseModel {
   @override
   String get accessToken;
   @override
-  String get refreshToken;
+  String? get refreshToken;
   @override
   UserModel get user;
   @override
