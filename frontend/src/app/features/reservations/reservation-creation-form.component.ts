@@ -1,10 +1,10 @@
-import { Component, input, effect, Output, EventEmitter, signal, computed, inject, ChangeDetectionStrategy, OnInit } from '@angular/core';
+import { Component, input, effect, Output, EventEmitter, signal, computed, inject, ChangeDetectionStrategy, OnInit, OnDestroy } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormBuilder, FormGroup, Validators, ReactiveFormsModule, AbstractControl, ValidationErrors } from '@angular/forms';
 import { ReservationService } from '@core/services/reservation.service';
 import { CreateReservationData, TimeRange } from '@core/models/reservation.model';
-import { Station, Charger } from '@core/models/stations.model';
-import { Observable, of, map, catchError, debounceTime, switchMap } from 'rxjs';
+import { Charger } from '@core/models/stations.model';
+import { Observable, Subject, of, map, catchError, debounceTime, switchMap, takeUntil } from 'rxjs';
 
 @Component({
   selector: 'app-reservation-creation-form',
@@ -13,9 +13,10 @@ import { Observable, of, map, catchError, debounceTime, switchMap } from 'rxjs';
   changeDetection: ChangeDetectionStrategy.OnPush,
   templateUrl: './reservation-creation-form.component.html'
 })
-export class ReservationCreationFormComponent implements OnInit {
+export class ReservationCreationFormComponent implements OnInit, OnDestroy {
   private fb = inject(FormBuilder);
   private reservationService = inject(ReservationService);
+  private destroy$ = new Subject<void>();
 
   // Signal-based inputs from parent - station, charger, date selection
   stationId = input<string>('');
@@ -58,7 +59,43 @@ export class ReservationCreationFormComponent implements OnInit {
   isSubmitting = signal(false);
   errorMessage = signal<string>('');
 
-  constructor() {
+  constructor() {}
+
+  ngOnInit() {
+    this.initForm();
+    this.setupFormListeners();
+    this.setupEffects();
+  }
+
+  ngOnDestroy() {
+    this.destroy$.next();
+    this.destroy$.complete();
+  }
+
+  private initForm() {
+    this.reservationForm = this.fb.group({
+      startTime: ['', Validators.required],
+      endTime: ['', [Validators.required, this.endTimeValidator.bind(this)]]
+    }, {
+      asyncValidators: [this.timeConflictValidator.bind(this)]
+    });
+  }
+
+  private setupFormListeners() {
+    this.reservationForm.get('startTime')?.valueChanges
+      .pipe(takeUntil(this.destroy$))
+      .subscribe(() => {
+        this.updateEstimatedCost();
+      });
+
+    this.reservationForm.get('endTime')?.valueChanges
+      .pipe(takeUntil(this.destroy$))
+      .subscribe(() => {
+        this.updateEstimatedCost();
+      });
+  }
+
+  private setupEffects() {
     // Effect to update form when time range changes
     effect(() => {
       const range = this.selectedTimeRange();
@@ -85,30 +122,6 @@ export class ReservationCreationFormComponent implements OnInit {
       this.chargerId();
       this.selectedDate();
       // Recalculate cost
-      this.updateEstimatedCost();
-    });
-  }
-
-  ngOnInit() {
-    this.initForm();
-    this.setupFormListeners();
-  }
-
-  private initForm() {
-    this.reservationForm = this.fb.group({
-      startTime: ['', Validators.required],
-      endTime: ['', [Validators.required, this.endTimeValidator.bind(this)]]
-    }, {
-      asyncValidators: [this.timeConflictValidator.bind(this)]
-    });
-  }
-
-  private setupFormListeners() {
-    this.reservationForm.get('startTime')?.valueChanges.subscribe(() => {
-      this.updateEstimatedCost();
-    });
-
-    this.reservationForm.get('endTime')?.valueChanges.subscribe(() => {
       this.updateEstimatedCost();
     });
   }

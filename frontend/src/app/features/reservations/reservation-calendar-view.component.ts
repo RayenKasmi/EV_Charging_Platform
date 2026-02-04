@@ -221,6 +221,7 @@ export class ReservationCalendarViewComponent implements OnDestroy {
     this.isDragging = false;
   }
 
+  
   getSlotClass(slot: TimeSlot): string {
     const range = this.selectedRange();
     const isSelected = range && slot.time >= range.start && slot.time < range.end;
