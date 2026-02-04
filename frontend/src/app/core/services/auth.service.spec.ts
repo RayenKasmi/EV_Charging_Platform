@@ -24,11 +24,10 @@ describe('AuthService', () => {
 
   const mockAuthResponse: AuthResponse = {
     accessToken: createMockJWT(3600),
-    refreshToken: createMockJWT(86400),
     user: {
       id: '1',
       email: 'test@example.com',
-      name: 'Test User',
+      fullName: 'Test User',
       role: 'user'
     }
   };
@@ -48,13 +47,10 @@ describe('AuthService', () => {
     httpMock = TestBed.inject(HttpTestingController);
     router = TestBed.inject(Router) as jasmine.SpyObj<Router>;
 
-    // Clear localStorage before each test
-    localStorage.clear();
   });
 
   afterEach(() => {
     httpMock.verify();
-    localStorage.clear();
   });
 
   it('should be created', () => {
@@ -71,11 +67,10 @@ describe('AuthService', () => {
       // Create fresh mock response with valid tokens
       const loginResponse: AuthResponse = {
         accessToken: createMockJWT(3600),
-        refreshToken: createMockJWT(86400),
         user: {
           id: '1',
           email: 'test@example.com',
-          name: 'Test User',
+          fullName: 'Test User',
           role: 'user'
         }
       };
@@ -83,7 +78,6 @@ describe('AuthService', () => {
       service.login(loginRequest).subscribe(response => {
         expect(response).toEqual(loginResponse);
         expect(service.getAccessToken()).toBe(loginResponse.accessToken);
-        expect(service.getRefreshToken()).toBe(loginResponse.refreshToken);
         expect(service.isAuthenticated()).toBe(true);
         expect(service.currentUser()?.email).toBe(loginResponse.user.email);
         done();
@@ -92,6 +86,7 @@ describe('AuthService', () => {
       const req = httpMock.expectOne(`${environment.apiUrl}/auth/login`);
       expect(req.request.method).toBe('POST');
       expect(req.request.body).toEqual(loginRequest);
+      expect(req.request.withCredentials).toBe(true);
       req.flush(loginResponse);
     });
 
@@ -118,17 +113,16 @@ describe('AuthService', () => {
       const registerRequest: RegisterRequest = {
         email: 'newuser@example.com',
         password: 'password123',
-        username: 'New User'
+        fullName: 'New User'
       };
 
       // Create fresh mock response with valid tokens
       const registerResponse: AuthResponse = {
         accessToken: createMockJWT(3600),
-        refreshToken: createMockJWT(86400),
         user: {
           id: '2',
           email: 'newuser@example.com',
-          name: 'New User',
+          fullName: 'New User',
           role: 'user'
         }
       };
@@ -142,28 +136,27 @@ describe('AuthService', () => {
       const req = httpMock.expectOne(`${environment.apiUrl}/auth/register`);
       expect(req.request.method).toBe('POST');
       expect(req.request.body).toEqual(registerRequest);
+      expect(req.request.withCredentials).toBe(true);
       req.flush(registerResponse);
     });
   });
 
   describe('logout', () => {
     it('should clear tokens and navigate to login', () => {
-      // Set up authenticated state
-      const validToken = createMockJWT(3600);
-      localStorage.setItem('ev_access_token', validToken);
-      localStorage.setItem('ev_refresh_token', 'refresh');
-      localStorage.setItem('ev_user', JSON.stringify(mockAuthResponse.user));
+      // Set up authenticated state (in-memory)
+      (service as any).setAccessToken(createMockJWT(3600));
+      (service as any).setUser(mockAuthResponse.user);
 
       service.logout();
 
       // Expect and flush the logout request
       const req = httpMock.expectOne(`${environment.apiUrl}/auth/logout`);
       expect(req.request.method).toBe('POST');
-      expect(req.request.body).toEqual({ refreshToken: 'refresh' });
+      expect(req.request.body).toEqual({});
+      expect(req.request.withCredentials).toBe(true);
       req.flush({});
 
       expect(service.getAccessToken()).toBeNull();
-      expect(service.getRefreshToken()).toBeNull();
       expect(service.isAuthenticated()).toBe(false);
       expect(router.navigate).toHaveBeenCalledWith(['/auth/login']);
     });
@@ -185,7 +178,7 @@ describe('AuthService', () => {
       const futureExp = Math.floor(Date.now() / 1000) + 3600; // 1 hour from now
       const mockToken = `eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.${btoa(JSON.stringify({ exp: futureExp }))}.signature`;
       
-      localStorage.setItem('ev_access_token', mockToken);
+      (service as any).setAccessToken(mockToken);
       
       expect(service.hasValidToken()).toBe(true);
     });
@@ -195,7 +188,7 @@ describe('AuthService', () => {
       const pastExp = Math.floor(Date.now() / 1000) - 3600; // 1 hour ago
       const mockToken = `eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.${btoa(JSON.stringify({ exp: pastExp }))}.signature`;
       
-      localStorage.setItem('ev_access_token', mockToken);
+      (service as any).setAccessToken(mockToken);
       
       expect(service.hasValidToken()).toBe(false);
     });
@@ -203,29 +196,25 @@ describe('AuthService', () => {
 
   describe('refreshToken', () => {
     it('should refresh access token', (done) => {
-      const oldRefreshToken = createMockJWT(86400);
-      localStorage.setItem('ev_refresh_token', oldRefreshToken);
-
       const refreshResponse = {
         accessToken: createMockJWT(3600),
-        refreshToken: createMockJWT(86400)
+        user: mockAuthResponse.user
       };
 
       service.refreshToken().subscribe(response => {
         expect(response).toEqual(refreshResponse);
         expect(service.getAccessToken()).toBe(refreshResponse.accessToken);
-        expect(service.getRefreshToken()).toBe(refreshResponse.refreshToken);
         done();
       });
 
       const req = httpMock.expectOne(`${environment.apiUrl}/auth/refresh`);
       expect(req.request.method).toBe('POST');
+      expect(req.request.withCredentials).toBe(true);
       req.flush(refreshResponse);
     });
 
     it('should logout on refresh token failure', (done) => {
-      const invalidToken = createMockJWT(86400);
-      localStorage.setItem('ev_refresh_token', invalidToken);
+      (service as any).setAccessToken(createMockJWT(3600));
 
       service.refreshToken().subscribe({
         error: () => {
@@ -241,6 +230,7 @@ describe('AuthService', () => {
       });
 
       const req = httpMock.expectOne(`${environment.apiUrl}/auth/refresh`);
+      expect(req.request.withCredentials).toBe(true);
       req.flush({ message: 'Invalid refresh token' }, { status: 401, statusText: 'Unauthorized' });
     });
   });

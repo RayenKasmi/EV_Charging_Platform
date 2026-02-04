@@ -20,7 +20,7 @@ export interface RegisterRequest {
 
 export interface AuthResponse {
   accessToken: string;
-  refreshToken: string;
+  refreshToken?: string;
   user: User;
 }
 
@@ -34,5 +34,6 @@ export interface TokenPayload {
 
 export interface RefreshTokenResponse {
   accessToken: string;
-  refreshToken: string;
+  refreshToken?: string;
+  user?: User;
 }

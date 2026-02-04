@@ -13,9 +13,6 @@ import {
 } from '../models';
 import { environment } from '@env/environment';
 
-const ACCESS_TOKEN_KEY = 'ev_access_token';
-const REFRESH_TOKEN_KEY = 'ev_refresh_token';
-const USER_KEY = 'ev_user';
 const TOKEN_REFRESH_BUFFER = 60000; // Refresh 60 seconds before expiry
 
 @Injectable({
@@ -26,13 +23,13 @@ export class AuthService {
   private router = inject(Router);
   private apiUrl = `${environment.apiUrl}/auth`;
 
-  // Auth state using Signals
-  private currentUserSignal = signal<User | null>(this.getUserFromStorage());
-  private authStateSignal = signal<boolean>(this.hasValidToken());
+  // Auth state using Signals (in-memory)
+  private accessTokenSignal = signal<string | null>(null);
+  private currentUserSignal = signal<User | null>(null);
 
   // Public computed signals
   public readonly currentUser = this.currentUserSignal.asReadonly();
-  public readonly isAuthenticated = computed(() => this.authStateSignal());
+  public readonly isAuthenticated = computed(() => this.hasValidToken());
   public readonly userRole = computed(() => this.currentUserSignal()?.role);
   public readonly userEmail = computed(() => this.currentUserSignal()?.email);
 
@@ -41,13 +38,15 @@ export class AuthService {
   private refreshTokenSubject = new BehaviorSubject<string | null>(null);
 
   constructor() {
-    // Initialize auto-refresh if token exists
-    this.initializeAutoRefresh();
+    // Try to restore session using refresh cookie
+    this.tryRefreshOnInit();
   }
 
   // Login user
   login(credentials: LoginRequest): Observable<AuthResponse> {
-    return this.http.post<AuthResponse>(`${this.apiUrl}/login`, credentials).pipe(
+    return this.http.post<AuthResponse>(`${this.apiUrl}/login`, credentials, {
+      withCredentials: true
+    }).pipe(
       tap(response => this.handleAuthSuccess(response)),
       catchError(this.handleError)
     );
@@ -57,7 +56,9 @@ export class AuthService {
    * Register new user
    */
   register(userData: RegisterRequest): Observable<AuthResponse> {
-    return this.http.post<AuthResponse>(`${this.apiUrl}/register`, userData).pipe(
+    return this.http.post<AuthResponse>(`${this.apiUrl}/register`, userData, {
+      withCredentials: true
+    }).pipe(
       tap(response => this.handleAuthSuccess(response)),
       catchError(this.handleError)
     );
@@ -67,14 +68,11 @@ export class AuthService {
    * Logout user and clear all auth data
    */
   logout(): void {
-    const refreshToken = this.getRefreshToken();
-    if (refreshToken) {
-      this.http.post(`${this.apiUrl}/logout`, { refreshToken })
-        .pipe(catchError(() => EMPTY)) // Ignore errors during logout
-        .subscribe();
-    }
+    this.http.post(`${this.apiUrl}/logout`, {}, { withCredentials: true })
+      .pipe(catchError(() => EMPTY)) // Ignore errors during logout
+      .subscribe();
 
-    // Clear all local storage
+    // Clear all in-memory auth data
     this.clearAuthData();
     
     // Reset refresh flow
@@ -84,7 +82,6 @@ export class AuthService {
 
     // Update signals
     this.currentUserSignal.set(null);
-    this.authStateSignal.set(false);
 
     // Navigate to login
     this.router.navigate(['/auth/login']);
@@ -94,12 +91,7 @@ export class AuthService {
    * Refresh access token using refresh token
    */
   refreshToken(): Observable<RefreshTokenResponse> {
-    const refreshToken = this.getRefreshToken();
-
-    if (!refreshToken) {
-      this.logout();
-      return throwError(() => new Error('No refresh token available'));
-    }
+    const hadAccessToken = !!this.getAccessToken();
 
     // If refresh is already in progress, wait for it
     if (this.refreshTokenInProgress) {
@@ -108,7 +100,7 @@ export class AuthService {
           if (token) {
             // Create a fake refresh response
             return new Observable<RefreshTokenResponse>(observer => {
-              observer.next({ accessToken: token, refreshToken: this.getRefreshToken()! });
+              observer.next({ accessToken: token });
               observer.complete();
             });
           }
@@ -120,15 +112,16 @@ export class AuthService {
     this.refreshTokenInProgress = true;
     this.refreshTokenSubject.next(null);
 
-    return this.http.post<RefreshTokenResponse>(`${this.apiUrl}/refresh`, { refreshToken }).pipe(
+    return this.http.post<RefreshTokenResponse>(`${this.apiUrl}/refresh`, {}, {
+      withCredentials: true
+    }).pipe(
       tap(response => {
         this.setAccessToken(response.accessToken);
-        this.setRefreshToken(response.refreshToken);
+        if (response.user) {
+          this.setUser(response.user);
+        }
         this.refreshTokenSubject.next(response.accessToken);
         this.refreshTokenInProgress = false;
-        
-        // Update auth state
-        this.authStateSignal.set(true);
 
         // Reinitialize auto-refresh with new token
         this.initializeAutoRefresh();
@@ -136,7 +129,11 @@ export class AuthService {
       catchError(error => {
         this.refreshTokenInProgress = false;
         this.refreshTokenSubject.next(null);
-        this.logout();
+        if (hadAccessToken) {
+          this.logout();
+        } else {
+          this.clearAuthData();
+        }
         return throwError(() => error);
       }),
       shareReplay(1)
@@ -147,14 +144,7 @@ export class AuthService {
    * Get current access token
    */
   getAccessToken(): string | null {
-    return localStorage.getItem(ACCESS_TOKEN_KEY);
-  }
-
-  /**
-   * Get refresh token
-   */
-  getRefreshToken(): string | null {
-    return localStorage.getItem(REFRESH_TOKEN_KEY);
+    return this.accessTokenSignal();
   }
 
   /**
@@ -236,16 +226,22 @@ export class AuthService {
   }
 
   /**
+   * Try to restore session using refresh cookie (no redirect on failure)
+   */
+  private tryRefreshOnInit(): void {
+    this.refreshToken().subscribe({
+      error: () => {
+        // No active session or refresh failed; stay unauthenticated
+      }
+    });
+  }
+
+  /**
    * Handle successful authentication
    */
   private handleAuthSuccess(response: AuthResponse): void {
     this.setAccessToken(response.accessToken);
-    this.setRefreshToken(response.refreshToken);
     this.setUser(response.user);
-
-    // Update signals
-    this.currentUserSignal.set(response.user);
-    this.authStateSignal.set(true);
 
     // Initialize auto-refresh
     this.initializeAutoRefresh();
@@ -255,45 +251,22 @@ export class AuthService {
    * Store access token
    */
   private setAccessToken(token: string): void {
-    localStorage.setItem(ACCESS_TOKEN_KEY, token);
-  }
-
-  /**
-   * Store refresh token
-   */
-  private setRefreshToken(token: string): void {
-    localStorage.setItem(REFRESH_TOKEN_KEY, token);
+    this.accessTokenSignal.set(token);
   }
 
   /**
    * Store user data
    */
   private setUser(user: User): void {
-    localStorage.setItem(USER_KEY, JSON.stringify(user));
+    this.currentUserSignal.set(user);
   }
 
   /**
-   * Get user from storage
-   */
-  private getUserFromStorage(): User | null {
-    const userJson = localStorage.getItem(USER_KEY);
-    if (userJson) {
-      try {
-        return JSON.parse(userJson);
-      } catch {
-        return null;
-      }
-    }
-    return null;
-  }
-
-  /**
-   * Clear all auth data from storage
+   * Clear all auth data from memory
    */
   private clearAuthData(): void {
-    localStorage.removeItem(ACCESS_TOKEN_KEY);
-    localStorage.removeItem(REFRESH_TOKEN_KEY);
-    localStorage.removeItem(USER_KEY);
+    this.accessTokenSignal.set(null);
+    this.currentUserSignal.set(null);
   }
 
   /**

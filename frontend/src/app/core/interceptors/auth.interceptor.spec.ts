@@ -1,11 +1,11 @@
 import { TestBed } from '@angular/core/testing';
-import { HttpInterceptorFn, HttpErrorResponse } from '@angular/common/http';
+import { HttpInterceptorFn } from '@angular/common/http';
 import { provideHttpClient, withInterceptors } from '@angular/common/http';
 import { HttpTestingController, provideHttpClientTesting } from '@angular/common/http/testing';
 import { HttpClient } from '@angular/common/http';
 import { authInterceptor } from './auth.interceptor';
 import { AuthService } from '../services/auth.service';
-import { of, throwError } from 'rxjs';
+import { of } from 'rxjs';
 
 describe('authInterceptor', () => {
   let httpMock: HttpTestingController;
@@ -15,7 +15,6 @@ describe('authInterceptor', () => {
   beforeEach(() => {
     const authServiceSpy = jasmine.createSpyObj('AuthService', [
       'getAccessToken',
-      'getRefreshToken',
       'refreshToken',
       'logout'
     ]);
@@ -69,8 +68,7 @@ describe('authInterceptor', () => {
 
   it('should handle 401 errors by refreshing token and retrying', () => {
     authService.getAccessToken.and.returnValues('old-token', 'new-token');
-    authService.getRefreshToken.and.returnValue('refresh-token');
-    authService.refreshToken.and.returnValue(of({ accessToken: 'new-token', refreshToken: 'new-refresh-token' }));
+    authService.refreshToken.and.returnValue(of({ accessToken: 'new-token' }));
 
     httpClient.get('/api/test').subscribe();
 

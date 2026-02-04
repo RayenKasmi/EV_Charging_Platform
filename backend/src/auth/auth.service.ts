@@ -123,7 +123,15 @@ export class AuthService {
     // Update refresh token hash
     await this.updateRefreshToken(user.id, tokens.refreshToken);
 
-    return tokens;
+    return {
+      user: {
+        id: user.id,
+        email: user.email,
+        fullName: user.fullName,
+        role: user.role,
+      },
+      ...tokens,
+    };
   }
 
   async logout(userId: string) {
