@@ -15,7 +15,6 @@ export class MyReservationsPageComponent implements OnInit, OnDestroy {
   private reservationService = inject(ReservationService);
 
   // Get reservations and loading state directly from service
-  reservations = this.reservationService.reservations;
   isLoading = this.reservationService.isLoadingReservations;
   
   selectedTab = signal<string>('upcoming');
@@ -33,17 +32,18 @@ export class MyReservationsPageComponent implements OnInit, OnDestroy {
   ];
 
   filteredReservations = computed(() => {
-    const tab = this.tabs.find(t => t.id === this.selectedTab());
-    if (!tab) return [];
-
-    return this.reservations()
-      .filter(r => tab.statuses.includes(r.status))
-      .sort((a, b) => {
-        if (this.selectedTab() === 'past') {
-          return b.startTime.getTime() - a.startTime.getTime();
-        }
-        return a.startTime.getTime() - b.startTime.getTime();
-      });
+    switch (this.selectedTab()) {
+      case 'upcoming':
+        return this.reservationService.upcomingReservations();
+      case 'active':
+        return this.reservationService.activeReservations();
+      case 'past':
+        return this.reservationService.pastReservations();
+      case 'cancelled':
+        return this.reservationService.cancelledReservations();
+      default:
+        return [];
+    }
   });
 
   ngOnInit() {
@@ -73,7 +73,23 @@ export class MyReservationsPageComponent implements OnInit, OnDestroy {
   }
 
   getCountForStatus(statuses: ReservationStatus[]): number {
-    return this.reservations().filter(r => statuses.includes(r.status)).length;
+    if (statuses.includes('PENDING') || statuses.includes('CONFIRMED')) {
+      return this.reservationService.upcomingReservations().length;
+    }
+
+    if (statuses.includes('ACTIVE')) {
+      return this.reservationService.activeReservations().length;
+    }
+
+    if (statuses.includes('COMPLETED') || statuses.includes('EXPIRED')) {
+      return this.reservationService.pastReservations().length;
+    }
+
+    if (statuses.includes('CANCELLED')) {
+      return this.reservationService.cancelledReservations().length;
+    }
+
+    return 0;
   }
 
   cancelReservation(id: string) {

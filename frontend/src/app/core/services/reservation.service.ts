@@ -153,6 +153,12 @@ export class ReservationService implements OnDestroy {
     ).sort((a, b) => a.startTime.getTime() - b.startTime.getTime())
   );
 
+  public readonly activeReservations = computed(() =>
+    this.reservations()
+      .filter(r => r.status === 'ACTIVE')
+      .sort((a, b) => a.startTime.getTime() - b.startTime.getTime())
+  );
+
   public readonly pastReservations = computed(() =>
     this.reservations().filter(r => 
       r.status === 'COMPLETED' || r.status === 'EXPIRED'
@@ -160,7 +166,9 @@ export class ReservationService implements OnDestroy {
   );
 
   public readonly cancelledReservations = computed(() =>
-    this.reservations().filter(r => r.status === 'CANCELLED')
+    this.reservations()
+      .filter(r => r.status === 'CANCELLED')
+      .sort((a, b) => b.startTime.getTime() - a.startTime.getTime())
   );
 
   constructor() {
